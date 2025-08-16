@@ -1,0 +1,21 @@
+# This is a generated file. Not intended for manual editing.
+services:
+  api:
+    build:
+      context: "F:\\2025\\GitPersonal\\RoyStore"
+      dockerfile: "Src/Service/Api/Dockerfile"
+      target: "base"
+    command: []
+    entrypoint:
+    - "dotnet"
+    - "/app/bin/Debug/net9.0/Api.dll"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    image: "api:dev"
+    ports: []
+    volumes:
+    - "F:\\2025\\GitPersonal\\RoyStore\\Src\\Service\\Api:/app:rw"
+    - "F:\\2025\\GitPersonal\\RoyStore:/src:rw"
+    - "C:\\Users\\roy\\.nuget\\packages:/home/app/.nuget/packages"
+    working_dir: "/app"

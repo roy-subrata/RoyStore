@@ -1,0 +1,8 @@
+﻿<Project>
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <Description>Roy Store</Description>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+</Project>
