@@ -1,0 +1,32 @@
+# Build outputs
+bin/
+obj/
+out/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VS Code settings
+.vscode/
+.history/
+
+# Rider IDE settings (optional)
+.idea/
+
+# NuGet packages
+*.nupkg
+packages/
+*.snupkg
+
+# ASP.NET Core secrets (if using Secret Manager)
+secrets.json
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
