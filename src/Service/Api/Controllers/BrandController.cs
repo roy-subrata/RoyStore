@@ -14,6 +14,7 @@ public class BrandController(
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] BrandQuery request)
     {
+        logger.LogInformation("Fecthing brand result");
         var query =  context.Brands.AsNoTracking();
         
         if (!string.IsNullOrWhiteSpace(request.Search))
