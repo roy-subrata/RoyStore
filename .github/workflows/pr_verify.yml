@@ -17,7 +17,7 @@ jobs:
           dotnet-version: 9.x.x
 
       - name: Restore dependencies
-        run: dotnet restore /Src/Service/Api/Api.csproj
+        run: dotnet restore ../src/Service/Api/Api.csproj
 
       - name: Build
-        run: dotnet build /Src/Service/Api/Api.csproj --no-restore --configuration Release
+        run: dotnet build .../src/Service/Api/Api.csproj --no-restore --configuration Release
