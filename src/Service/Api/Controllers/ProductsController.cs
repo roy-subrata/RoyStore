@@ -11,8 +11,7 @@ namespace Api.Controllers;
 [Route("api/[controller]")]
 public class ProductsController(
     ILogger<ProductsController> logger,
-    StoreDbContext dbContext,
-    IMapper mapper) : ControllerBase
+    StoreDbContext dbContext) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] ProductQuery request)
@@ -36,7 +35,7 @@ public class ProductsController(
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.Attributes)
-            .Select(x=>x.AsDto())
+            .Select(x => x.AsDto())
             .ToListAsync();
 
         var pageResult = new Paging<GetProduct>()
@@ -56,12 +55,12 @@ public class ProductsController(
     public async Task<IActionResult> GetById(string id)
     {
         logger.LogInformation("Request for product by id: {id}", id);
-        
+
         var result = await dbContext.Products
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.Attributes)
-            .Select(x=>x.AsDto())
+            .Select(x => x.AsDto())
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (result == null)
@@ -108,9 +107,8 @@ public class ProductsController(
 
         dbContext.Products.Add(product);
         await dbContext.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = product.Id }, mapper.Map<GetProduct>(product));
+        return CreatedAtAction(nameof(GetById), new { id = product.Id }, product.AsDto());
     }
-    
     [HttpPut("{id}")]
     public async Task<IActionResult> Put(string id, [FromBody] CreateProduct request)
     {
@@ -132,7 +130,7 @@ public class ProductsController(
         existingProduct.BrandId = request.BrandId;
         existingProduct.CategoryId = request.CategoryId;
         existingProduct.Notes = request.Notes;
-        
+
         var existingAttributes = existingProduct.Attributes.ToDictionary(x => x.Id);
         if (request.Attributes != null)
             foreach (var attribute in request.Attributes)
