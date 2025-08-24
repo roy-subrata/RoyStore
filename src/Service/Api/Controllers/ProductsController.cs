@@ -1,7 +1,6 @@
 ﻿using Api.Entities;
 using Api.Mapping;
 using Api.Models;
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -79,6 +78,18 @@ public class ProductsController(
         logger.LogInformation("Creating product {Product} with {attributes} attributes", request.Name,
             request.Attributes?.Count ?? 0);
 
+        var brand = await dbContext.Brands.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.BrandId);
+        if (brand is null)
+        {
+            return BadRequest($"Brand with ID {request.BrandId} was not found.");
+        }
+
+        var category = await dbContext.Categories.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.CategoryId);
+        if (category is null)
+        {
+            return BadRequest($"Category with ID {request.CategoryId} was not found.");
+        }
+
         var product = new Product()
         {
             Id = Guid.NewGuid().ToString(),
@@ -107,8 +118,21 @@ public class ProductsController(
 
         dbContext.Products.Add(product);
         await dbContext.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = product.Id }, product.AsDto());
+
+        var response = new GetProduct(
+          product.Id,
+          product.Name,
+          product.LocalName,
+          product.PartNo,
+          new EntityRef(product.BrandId, brand.Name),
+          new EntityRef(product.CategoryId, category.Name),
+          product.Attributes.Select(a => new GetProductAttribute(a.Id, a.AttributeName, a.AttributeValue)).ToList(),
+          product.Notes
+      );
+
+        return CreatedAtAction(nameof(GetById), new { id = product.Id }, response);
     }
+
     [HttpPut("{id}")]
     public async Task<IActionResult> Put(string id, [FromBody] CreateProduct request)
     {
@@ -123,6 +147,19 @@ public class ProductsController(
             logger.LogWarning("Product {ProductId} not found for update", id);
             return NotFound();
         }
+
+        var brand = await dbContext.Brands.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.BrandId);
+        if (brand is null)
+        {
+            return BadRequest($"Brand with ID {request.BrandId} was not found.");
+        }
+
+        var category = await dbContext.Categories.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.CategoryId);
+        if (category is null)
+        {
+            return BadRequest($"Category with ID {request.CategoryId} was not found.");
+        }
+
 
         existingProduct.Name = request.Name;
         existingProduct.LocalName = request.LocalName;
@@ -159,7 +196,18 @@ public class ProductsController(
 
         await dbContext.SaveChangesAsync();
         logger.LogInformation("Successfully updated product {ProductId}", id);
-        return NoContent();
+
+        var response = new GetProduct(
+        existingProduct.Id,
+        existingProduct.Name,
+        existingProduct.LocalName,
+        existingProduct.PartNo,
+        new EntityRef(existingProduct.BrandId, existingProduct.Name),
+        new EntityRef(existingProduct.CategoryId, existingProduct.Name),
+        existingProduct.Attributes.Select(a => new GetProductAttribute(a.Id, a.AttributeName, a.AttributeValue)).ToList(),
+        existingProduct.Notes
+    );
+        return Ok(response);
     }
 
 

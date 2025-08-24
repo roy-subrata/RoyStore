@@ -45,12 +45,12 @@ public static class MappingExtensions
     {
         return new EntityRef(brand.Id, brand.Name);
     }
-    
+
     public static EntityRef AsDto(this Category category)
     {
         return new EntityRef(category.Id, category.Name);
     }
-    
+
     public static EntityRef AsDto(this Supplier supplier)
     {
         return new EntityRef(supplier.Id, supplier.Name);
@@ -63,5 +63,7 @@ public static class MappingExtensions
             attribute.AttributeName,
             attribute.AttributeValue);
     }
+
+
 }
 
