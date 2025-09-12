@@ -1,0 +1,42 @@
+﻿@using Client.Shared.Pages.Shared
+@inherits LayoutComponentBase
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+@inject IStringLocalizer<Shared> L
+<MudLayout>
+    <!-- Top Bar -->
+   <MudAppBar Dense=true Elevation="0" Color="Color.Primary" >
+    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+        OnClick="@DrawerToggle" />
+    <MudText Typo="Typo.h6">@L["Title"]</MudText>
+    <MudSpacer />  @* This component pushes the LanguageSwitcher to the right *@
+    <LanguageSwitcher/>
+</MudAppBar>
+
+    <!-- Drawer + Content -->
+    <MudDrawerContainer>
+        <!-- Sidebar -->
+        <!-- Sidebar Drawer -->
+        <MudDrawer @bind-Open="_drawerOpen" Anchor="Anchor.Start" Elevation="1" Variant="DrawerVariant.Responsive"
+            Style="overflow-y:auto; overflow-x:hidden;">
+            <NavMenu />
+        </MudDrawer>
+        <MudMainContent Style="overflow-y:auto; height:100vh;">
+            <MudContainer MaxWidth="MaxWidth.False">
+                @Body
+            </MudContainer>
+        </MudMainContent>
+    </MudDrawerContainer>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    private void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}

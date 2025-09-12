@@ -1,0 +1,83 @@
+@inject SupplierService SupplierService
+@inject NavigationManager Navigation
+
+<MudPaper Class="pa-4">
+    <MudForm @ref="_form" Model="Supplier" @bind-IsValid="@_success">
+        <MudTextField T="string" Label="Name" @bind-Value="Supplier.Name" Required="true"
+            RequiredError="Name is required!" />
+        <MudTextField T="string" Label="Email" @bind-Value="Supplier.Email" />
+        <MudTextField T="string" Label="Phone" Required="true" RequiredError="Name is required!"
+            @bind-Value="Supplier.Phone" />
+        <MudTextField T="string" Label="Address" Lines="2" @bind-Value="Supplier.Address" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!_success)" Class="mt-2 ml-auto"
+            OnClick="Submit">
+            Save
+        </MudButton>
+    </MudForm>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public SupplierModel Supplier { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<SupplierModel> OnSubmitCompleted { get; set; }
+
+    private bool IsEditMode => String.IsNullOrEmpty(Supplier?.Id) == false;
+    private bool _success;
+    private MudForm? _form;
+
+    protected override void OnParametersSet()
+    {
+        if (IsEditMode)
+        {
+            Supplier = new SupplierModel
+            {
+                Id = Supplier.Id,
+                Name = Supplier.Name,
+                Phone = Supplier.Phone,
+                Email = Supplier.Email,
+                Address = Supplier.Address
+            };
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (_form is null)
+            return;
+        if (_form.IsValid)
+        {
+            try
+            {
+                if (IsEditMode)
+                {
+                    await SupplierService.UpdateAsync(Supplier.Id, new UpdateSupplierDto(Supplier.Name,
+                    Supplier.Email, Supplier.Phone, Supplier.Address));
+                    await OnSubmitCompleted.InvokeAsync(Supplier);
+                }
+                else
+                {
+                    var response = await SupplierService.CreateAsync(new CreateSupplierDto(Supplier.Name,
+                    Supplier.Email, Supplier.Phone, Supplier.Address));
+                    Supplier.Id = response.Id;
+                    await OnSubmitCompleted.InvokeAsync(Supplier);
+                }
+                Navigation.NavigateTo("/Suppliers");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($@"Error: {ex.Message}");
+            }
+        }
+    }
+
+    public class SupplierModel
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+    }
+}

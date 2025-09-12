@@ -1,0 +1,261 @@
+@page "/categories"
+
+@inject CategoryService CategoryService
+<MudGrid Class="mb-4" Spacing="2" AlignItems="Center">
+    <!-- 🔎 Search -->
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string"
+                      Placeholder="Search categories..."
+                      Margin="Margin.Dense"
+                      Variant="Variant.Outlined"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Immediate="true"
+                      DebounceInterval="300"
+                      Class="w-full"
+                      @bind-Value="_searchText"
+                      TextChanged="OnSearchChanged"/>
+    </MudItem>
+
+    <!-- 🔘 Action buttons -->
+    <MudItem xs="12" sm="6" Class="flex justify-end gap-2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Class="m-1"
+                   OnClick="AddRootCategory">
+            + Add Root
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small" Class="m-1"
+                   OnClick="() => SetTreeExpansion(true)">
+            Expand All
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small" Class="m-1"
+                   OnClick="() => SetTreeExpansion(false)">
+            Collapse All
+        </MudButton>
+    </MudItem>
+</MudGrid>
+
+
+<!-- 🌲 Category Tree -->
+<MudTreeView T="CategoryTreeItem" Items="@TreeItems" Hover="true" Dense="true" @ref="_treeView">
+    <ItemTemplate Context="item">
+        <MudTreeViewItem Items="@item.Children" Value="@item.Value" @bind-Expanded="@item.Expanded">
+            <BodyContent>
+                <div style="display: grid; grid-template-columns: 1fr auto; align-items: center; width: 100%">
+                    @if (item.Value.IsEditing)
+                    {
+                        <MudTextField @bind-Value="item.Value.Name"
+                                      Label="New Root Category"
+                                      Required="true"
+                                      RequiredError="Please enter category name"
+                                      Immediate="true"
+                                      @ref="categoryField"
+                                      OnBlur="() => SaveCategory(item)" />
+                     
+                    }
+                    else
+                    {
+                        <MudText Class="@GetHighlightClass(item.Value.Name)">@item.Value.Name</MudText>
+                    }
+                    <div style="justify-self: end;">
+                        <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                       Size="Size.Small"
+                                       OnClick="() => AddChildCategory(item)"/>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Size="Size.Small"
+                                       OnClick="() => EnableInlineEdit(item)"/>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Size="Size.Small"
+                                       OnClick="() => DeleteCategory(item)"/>
+                    </div>
+                </div>
+            </BodyContent>
+        </MudTreeViewItem>
+    </ItemTemplate>
+</MudTreeView>
+
+@code {
+    private MudTreeView<CategoryTreeItem> _treeView;
+    private List<TreeItemData<CategoryTreeItem>> TreeItems { get; set; } = new();
+    private string _searchText = string.Empty;
+    private MudTextField<string> categoryField;
+    // 📦 Category model
+    public class CategoryTreeItem
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? ParentId { get; set; }
+        public bool IsEditing { get; set; }
+    }
+ 
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+    }
+    
+    private async Task LoadCategories(string search = null)
+    {
+        var categories = await CategoryService.GetAsync(search);
+        TreeItems = categories.Data
+            .Select(MapCategoryToTreeItem)
+            .ToList();
+    }
+
+    private TreeItemData<CategoryTreeItem> MapCategoryToTreeItem(CategoryDto dto)
+    {
+        return new TreeItemData<CategoryTreeItem>
+        {
+            Value = new CategoryTreeItem
+            {
+                Id = dto.Id,
+                Name = dto.Name,
+                ParentId = dto.ParentId,
+                IsEditing = false
+            },
+            Children = dto.Children?.Select(MapCategoryToTreeItem).ToList() ?? new()
+        };
+    }
+
+    // 🔹 Expand / Collapse
+    private void SetTreeExpansion(bool expand)
+    {
+        SetExpansionRecursive(TreeItems, expand);
+        StateHasChanged();
+    }
+
+    private void SetExpansionRecursive(List<TreeItemData<CategoryTreeItem>> items, bool expand)
+    {
+        foreach (var item in items)
+        {
+            item.Expanded = expand;
+            if (item.Children.Any())
+                SetExpansionRecursive(item.Children, expand);
+        }
+    }
+
+    // 🔹 Search + highlight
+    private async Task OnSearchChanged(string searchText)
+    {
+        _searchText = searchText;
+        await LoadCategories(searchText);
+
+        if (!string.IsNullOrEmpty(searchText))
+            ExpandMatchingParents(TreeItems, searchText);
+
+        StateHasChanged();
+    }
+
+    private bool ExpandMatchingParents(List<TreeItemData<CategoryTreeItem>> treeItems, string searchText)
+    {
+        bool anyMatch = false;
+        foreach (var treeItem in treeItems)
+        {
+            bool childMatch = ExpandMatchingParents(treeItem.Children, searchText);
+            bool selfMatch = treeItem.Value.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase);
+
+            if (childMatch || selfMatch)
+            {
+                treeItem.Expanded = true;
+                anyMatch = true;
+            }
+        }
+
+        return anyMatch;
+    }
+
+    private string GetHighlightClass(string name)
+    {
+        if (!string.IsNullOrEmpty(_searchText) && name.Contains(_searchText, StringComparison.OrdinalIgnoreCase))
+        {
+            return "mud-text-primary mud-font-bold";
+        }
+
+        return string.Empty;
+    }
+
+    // 🔹 Inline edit
+    private void EnableInlineEdit(TreeItemData<CategoryTreeItem> item)
+    {
+        if (item.Value != null) item.Value.IsEditing = true;
+    }
+
+    private async Task SaveCategory(TreeItemData<CategoryTreeItem> item)
+    {
+        await categoryField.Validate();
+
+        if (!categoryField.Error)
+        {
+            item.Value.IsEditing = false;
+            if (string.IsNullOrEmpty(item.Value.Id))
+            {
+                // ➕ Add new
+                var created = await CategoryService.CreateAsync(new CreateCategoryDto(item.Value.Name, "", item?.Value?.ParentId));
+                item.Value.Id = created.Id;
+            }
+            else
+            {
+                // ✏️ Update
+                if (item?.Value?.ParentId != null)
+                    if (item?.Value?.ParentId != null)
+                        await CategoryService.UpdateAsync(item.Value.Id, new UpdateCategoryDto(item.Value.Name, "", item?.Value?.ParentId));
+            }
+        }
+    }
+
+    // 🔹 Delete
+    private async Task DeleteCategory(TreeItemData<CategoryTreeItem> item)
+    {
+        if (!string.IsNullOrEmpty(item.Value?.Id))
+            await CategoryService.DeleteAsync(item.Value.Id);
+
+        RemoveNode(TreeItems, item);
+    }
+
+    private bool RemoveNode(List<TreeItemData<CategoryTreeItem>> nodes, TreeItemData<CategoryTreeItem> target)
+    {
+        if (nodes.Remove(target))
+            return true;
+
+        foreach (var node in nodes)
+        {
+            if (node.Children != null && RemoveNode(node.Children, target))
+                return true;
+        }
+
+        return false;
+    }
+
+    // 🔹 Add Root
+    private void AddRootCategory()
+    {
+        var newCat = new TreeItemData<CategoryTreeItem>
+        {
+            Value = new CategoryTreeItem()
+            {
+                Id = string.Empty,
+                Name = "",
+                IsEditing = true
+            },
+            Children = new List<TreeItemData<CategoryTreeItem>>()
+        };
+        TreeItems.Add(newCat);
+    }
+
+    // 🔹 Add Child
+    private void AddChildCategory(TreeItemData<CategoryTreeItem> parent)
+    {
+        var child = new TreeItemData<CategoryTreeItem>
+        {
+            Value = new CategoryTreeItem
+            {
+                Id = string.Empty,
+                Name = "New Child",
+                ParentId = parent.Value?.Id,
+                IsEditing = true
+            },
+            Children = new List<TreeItemData<CategoryTreeItem>>()
+        };
+        parent.Children?.Add(child);
+        parent.Expanded = true;
+    }
+
+}

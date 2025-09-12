@@ -1,0 +1,119 @@
+﻿@page "/"
+@using Client.Shared.Services
+@inject IFormFactor FormFactor
+
+<PageTitle>Home</PageTitle>
+
+<div class="p-6 ">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-5">
+        <div class="text-sm text-gray-600 dark:text-gray-300">
+            <span id="clock">@DateTime.Now.ToString("hh:mm tt")</span>
+            <span>, @DateTime.Now.ToString("MMMM dd, yyyy") (UTC+6)</span>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <!-- Sales Today -->
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Sales Today</h3>
+            <p class="text-2xl font-bold text-green-600 dark:text-green-400">$1,234.56</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">+5.2% from yesterday</p>
+        </div>
+
+        <!-- Total Products -->
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Total Products</h3>
+            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">150</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">10 added today</p>
+        </div>
+
+        <!-- Transactions -->
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Transactions</h3>
+            <p class="text-2xl font-bold text-purple-600 dark:text-purple-400">85</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Last hour: 12</p>
+        </div>
+
+        <!-- Open Orders -->
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Open Orders</h3>
+            <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">5</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Pending review</p>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Product List -->
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Product List</h3>
+            <ul class="space-y-2">
+                <li class="flex justify-between text-sm text-gray-600 dark:text-gray-300">
+                    <span>Item 1</span>
+                    <span>$19.99</span>
+                </li>
+                <li class="flex justify-between text-sm text-gray-600 dark:text-gray-300">
+                    <span>Item 2</span>
+                    <span>$29.99</span>
+                </li>
+                <li class="flex justify-between text-sm text-gray-600 dark:text-gray-300">
+                    <span>Item 3</span>
+                    <span>$14.99</span>
+                </li>
+            </ul>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4 w-full" Href="/products">View All
+            </MudButton>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow lg:col-span-2">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Recent Transactions</h3>
+            <table class="w-full text-sm text-gray-600 dark:text-gray-300">
+                <thead>
+                    <tr class="border-b dark:border-gray-700">
+                        <th class="py-2">ID</th>
+                        <th class="py-2">Amount</th>
+                        <th class="py-2">Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="py-2">001</td>
+                        <td class="py-2">$45.00</td>
+                        <td class="py-2">00:55 AM</td>
+                    </tr>
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="py-2">002</td>
+                        <td class="py-2">$120.50</td>
+                        <td class="py-2">23:40 PM</td>
+                    </tr>
+                </tbody>
+            </table>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4 w-full" Href="/transactions">View All
+            </MudButton>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string factor => FormFactor.GetFormFactor();
+    private string platform => FormFactor.GetPlatform();
+
+    private string CurrentTime { get; set; }
+
+    protected override void OnInitialized()
+    {
+        UpdateTime();
+        @* var timer = new Timer(1000); // Update every second
+            timer.Elapsed += (s, e) => UpdateTime();
+            timer.Start(); *@
+    }
+
+    private void UpdateTime()
+    {
+        CurrentTime = DateTime.Now.ToString("hh:mm tt") + ", " + DateTime.Now.ToString("MMMM dd, yyyy") + " (UTC+6)";
+        StateHasChanged();
+    }
+}

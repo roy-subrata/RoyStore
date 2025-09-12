@@ -1,0 +1,242 @@
+@page "/product-form/{Id?}"
+@using Client.Shared.Services
+
+@inject ProductService ProductService
+@inject BrandService BrandService
+@inject CategoryService CategoryService
+@inject NavigationManager Navigation
+@inject FeatureService FeatureService
+
+<MudForm @ref="_form" Model="Product" @bind-IsValid="@_success">
+
+
+    <MudCard Class="p-4 shadow-lg">
+        <MudGrid GutterSize="2">
+            <!-- Part Name -->
+
+            <MudItem xs="12" sm="4">
+                <MudTextField T="string" Label="Name" @bind-Value="Product.Name" Dense="true" Margin="Margin.Dense"
+                    Variant="Variant.Outlined" Style="width:100%;" />
+            </MudItem>
+
+            <!-- Local Name -->
+            <MudItem xs="12" sm="4">
+                <MudTextField T="string" Label="Local Name" @bind-Value="Product.LocalName" Dense="true"
+                    Margin="Margin.Dense" Variant="Variant.Outlined" Style="width:100%;" />
+            </MudItem>
+
+            <!-- Part Number -->
+            <MudItem xs="12" sm="4">
+                <MudTextField T="string" Label="Part No" @bind-Value="Product.PartNo" Dense="true" Margin="Margin.Dense"
+                    Variant="Variant.Outlined" Style="width:100%;" />
+            </MudItem>
+
+            <!-- Brand -->
+            <MudItem xs="12" sm="4">
+                <MudAutocomplete T="EntityRef" Margin="Margin.Dense" Label="Brand" @bind-Value="_selectedBrand"
+                    SearchFunc="SearchBrands" ToStringFunc="x => x?.Name" Dense="true" Variant="Variant.Outlined"
+                    Style="width:100%;" />
+            </MudItem>
+
+
+            <!-- Category -->
+            <MudItem xs="12" sm="4">
+                <MudAutocomplete T="EntityRef" Margin="Margin.Dense" Label="Category" @bind-Value="_selectedCategory"
+                    SearchFunc="SearchCategories" ToStringFunc="x => x?.Name" Dense="true" Variant="Variant.Outlined"
+                    Style="width:100%;" />
+
+            </MudItem>
+
+            <!-- Notes -->
+            <MudItem xs="12" sm="6">
+                <MudTextField T="string" Label="Description" Margin="Margin.Dense" @bind-Value="Product.Description"
+                    Dense="true" Variant="Variant.Outlined" Lines="2" Style="width:100%;" />
+            </MudItem>
+        </MudGrid>
+    </MudCard>
+    <MudCard Class="p-4 shadow-lg mt-4">
+
+
+        <MudGrid GutterSize="2">
+            @foreach (var t in Product.Features)
+            {
+                <MudItem xs="12" sm="5">
+                    <MudAutocomplete T="EntityRef" Margin="Margin.Dense" Label="Search Feature" @bind-Value="t.Feature"
+                        SearchFunc="SearchFeatures" ToStringFunc="x=>x?.Name" Dense="true" Variant="Variant.Outlined"
+                        Style="width:100%;" />
+                </MudItem>
+                <MudItem xs="12" sm="5">
+                    <MudTextField T="string" Margin="Margin.Dense" Label=" Value" @bind-Value="t.Value" Dense="true"
+                        Variant="Variant.Outlined" Style="width:100%;" />
+                </MudItem>
+                <MudItem xs="12" sm="2" Class="d-flex align-center">
+                    <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Success" OnClick="AddFeature" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                        OnClick="@(() => RemoveFeature(t))" />
+
+                </MudItem>
+            }
+        </MudGrid>
+
+    </MudCard>
+    <div class="mt-4 d-flex justify-content-end gap-2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!_success)" Class="mt-2" OnClick="Submit">
+            Save</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!_success)" Class="mt-2"
+            OnClick="@(async () => await Cancel())">
+            Reset</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!_success)" Class="mt-2"
+            OnClick="@(() => Navigation.NavigateTo("/products"))">
+            Cancel</MudButton>
+    </div>
+
+
+</MudForm>
+
+
+
+@code {
+    public ProductFormModel Product { get; set; } = new();
+    [Parameter]
+    public string Id { get; set; } = string.Empty;
+    private EntityRef? _selectedBrand;
+    private EntityRef? _selectedCategory;
+    private List<EntityRef> _flatCategories = new();
+    private bool _success;
+    private MudForm? _form;
+    private bool IsEditMode => !string.IsNullOrEmpty(Product.Id);
+    private List<EntityRef> FlattenCategories(List<CategoryDto> categories, string indent = "")
+    {
+        var list = new List<EntityRef>();
+        foreach (var c in categories)
+        {
+            list.Add(new EntityRef(c.Id, $"{indent}{c.Name}"));
+            if (c.Children?.Any() == true)
+                list.AddRange(FlattenCategories(c.Children, indent + "--"));
+        }
+        return list;
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(Id))
+        {
+            // Fetch the product by ID from a service or API
+            var product = await ProductService.GetByIdAsync(Id);
+            Product = new ProductFormModel()
+            {
+                Id = product.Id,
+                Name = product.Name,
+                LocalName = product.LocalName,
+                PartNo = product.PartNo,
+                Description = product.Description,
+                BrandId = product.Brand.Id,
+                CategoryId = product.Category.Id,
+                Features =
+            product.Features.Select(x => new ProductFeature()
+            {
+                Id = x.Id,
+                Value = x.Value,
+                Feature = new EntityRef(x.Id, x.Name)
+            }).ToList()
+            };
+            _selectedBrand = product.Brand;
+            _selectedCategory = product.Category;
+        }
+    }
+
+
+    // ===================== Attribute handlers =====================
+    private void AddFeature() => Product.Features.Add(new ProductFeature());
+    private void RemoveFeature(ProductFeature feature) => Product.Features.Remove(feature);
+
+    // ===================== Submit =====================
+
+    private async Task Cancel()
+    {
+        await _form?.ResetAsync()!;
+    }
+
+    private async Task Submit()
+    {
+        if (_form is null) return;
+
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        try
+        {
+            var features = Product.Features.Select(x => new CreateFeatureDto(x.Feature.Id, x.Value)).ToList();
+            if (IsEditMode)
+            {
+                await ProductService.UpdateAsync(Product.Id, new UpdateProductDto(
+                Product.Id,
+                Product.Name,
+                Product.LocalName,
+                Product.PartNo,
+                _selectedBrand.Id,
+                _selectedCategory.Id,
+                Product.Description,
+                features
+                ));
+            }
+
+            else
+            {
+                var response = await ProductService.CreateAsync(new CreateProductDto(
+                Product.Name,
+                Product.LocalName,
+                Product.PartNo,
+                _selectedBrand.Id,
+                _selectedCategory.Id,
+                Product.Description,
+                features
+                ));
+                Product.Id = response.Id;
+            }
+
+            Navigation.NavigateTo("/products");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($@"Error: {ex.Message}");
+        }
+    }
+    private async Task<IEnumerable<EntityRef>> SearchBrands(string value, CancellationToken cancellationToken)
+    {
+        var result = await BrandService.GetAsync(search: value ?? string.Empty);
+        return result.Data.Select(x => new EntityRef(x.Id, x.Name));
+    }
+
+    private async Task<IEnumerable<EntityRef>> SearchCategories(string value, CancellationToken cancellationToken)
+    {
+        var result = await CategoryService.GetAsync(search: value ?? string.Empty);
+        return FlattenCategories(result.Data);
+    }
+
+    private async Task<IEnumerable<EntityRef>> SearchFeatures(string value, CancellationToken cancellationToken)
+    {
+        var result = await FeatureService.GetAsync(search: value ?? string.Empty);
+        return result.Data.Select(x => new EntityRef(x.Id, x.Name));
+    }
+
+
+
+    public class ProductFormModel
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string LocalName { get; set; } = string.Empty;
+        public string PartNo { get; set; } = string.Empty;
+        public string BrandId { get; set; } = string.Empty;
+        public string CategoryId { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public List<ProductFeature> Features { get; set; } = [new()];
+    }
+
+    public class ProductFeature
+    {
+        public string Id { get; set; } = string.Empty;
+        public EntityRef Feature { get; set; }
+        public string Value { get; set; } = string.Empty;
+    }
+}

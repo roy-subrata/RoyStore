@@ -1,0 +1,67 @@
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+<MudAutocomplete T="string" @ref="_autoRef" Id="@Id" Label="@Label" SearchFunc="SearchItems" ToStringFunc="@(s => s)"
+        MaxHeight="150"      Dense="true" Variant="Variant.Filled" IsOpenChanged="HandleIsOpenChanged" />
+
+@code {
+    [Parameter] public string Label { get; set; } = "Search";
+    // LoadFunc: (searchText, skip, take) => Task<IEnumerable<string>>
+    [Parameter] public Func<string, int, int, Task<IEnumerable<string>>> LoadFunc { get; set; }
+
+    private MudAutocomplete<string> _autoRef;
+    private DotNetObjectReference<InfiniteAutocomplete> _dotNetRef;
+    [Parameter]
+    public string Id { get; set; }=string.Empty;
+
+    private int _pageSize = 5;
+    private int _currentPage = 1;
+    private string _lastSearch = "";
+
+    private async Task<IEnumerable<string>> SearchItems(string value, CancellationToken cancellationToken)
+    {
+        // reset paging when search text changes
+        if (_lastSearch != value)
+        {
+            _lastSearch = value;
+            _currentPage = 1;
+        }
+
+        // call user's loader (skip, take)
+        var skip = (_currentPage - 1) * _pageSize;
+        var take = _pageSize;
+        if (LoadFunc == null)
+            return Enumerable.Empty<string>();
+
+        return await LoadFunc(value, skip, take);
+    }
+
+    private async Task HandleIsOpenChanged(bool isOpen)
+    {
+        if (isOpen)
+        {
+            // create and pass a DotNet reference for callbacks
+            _dotNetRef ??= DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("attachAutocompleteScroll", Id, _dotNetRef);
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("detachAutocompleteScroll", Id);
+            _dotNetRef?.Dispose();
+            _dotNetRef = null;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnScrollEnd()
+    {
+        // load next page
+        _currentPage++;
+        // OpenMenuAsync will refresh the list if already open (re-triggers SearchFunc).
+        // This is the documented behavior for MudAutocomplete to refresh when open.
+        if (_autoRef is not null)
+            await _autoRef.OpenMenuAsync();
+
+        StateHasChanged();
+    }
+}

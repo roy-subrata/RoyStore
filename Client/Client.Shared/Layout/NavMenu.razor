@@ -1,0 +1,51 @@
+﻿
+@inject IStringLocalizer<Shared> L
+    
+<MudPaper Width="250px" Elevation="0">
+    <MudNavMenu Class="py-12">
+        @* <MudText Class="px-4 py-2 ">Sunjan Motors & Glass House</MudText>
+        <MudText Class="px-4 py-2 mud-text-secondary">Secondary Text</MudText>
+        <MudDivider Class="my-2" /> *@
+        <MudNavLink Href="/dashboard">Dashboard</MudNavLink>
+        <MudNavLink Href="/servers">Servers</MudNavLink>
+        <MudNavLink Href="/billing" Disabled="true">Billing</MudNavLink>
+        <MudNavGroup Title="Settings" HeaderClass="settings-error" Expanded="true">
+            <TitleContent>
+                <MudBadge Icon="@Icons.Material.Filled.ErrorOutline" Color="Color.Error"
+                    Origin="@(RightToLeft ? Origin.CenterLeft : Origin.CenterRight)" BadgeClass="mx-2">
+                    Settings
+                </MudBadge>
+            </TitleContent>
+            <ChildContent>
+                <MudNavLink Href="/categories">@L["Category"]</MudNavLink>
+                <MudNavLink Href="/customers">@L["Customer"]</MudNavLink>
+                <MudNavLink Href="/brands">@L["Brand"]</MudNavLink>
+                <MudNavLink Href="/suppliers">@L["Supplier"]</MudNavLink>
+                <MudNavLink Href="/products">Products</MudNavLink>
+                <MudNavLink Href="/purchases">Purchase</MudNavLink>
+                <MudNavLink Href="/units">Unit</MudNavLink>
+                <MudNavLink Href="/features">Feature</MudNavLink>
+                
+                <MudNavLink Href="/security">
+                    <MudBadge Content="3" Color="Color.Error"
+                        Origin="@(RightToLeft ? Origin.CenterLeft : Origin.CenterRight)" BadgeClass="mx-2">
+                        Security
+                    </MudBadge>
+                </MudNavLink>
+            </ChildContent>
+        </MudNavGroup>
+        <MudNavLink Href="/about">About</MudNavLink>
+
+    </MudNavMenu>
+</MudPaper>
+
+@code {
+    [CascadingParameter(Name = "RightToLeft")] public bool RightToLeft { get; set; }
+
+}
+
+<style>
+    .settings-error {
+        color: red;
+    }
+</style>

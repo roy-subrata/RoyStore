@@ -1,0 +1,24 @@
+@using System.Globalization
+@using Microsoft.AspNetCore.Components
+@inject NavigationManager NavigationManager
+
+<select Magrin="Magrin.Dense" class="form-select w-auto" @onchange="ChangeLanguage" >
+    <option value="en" selected="@(CurrentCulture.Name == "en")">English</option>
+    <option value="bn" selected="@(CurrentCulture.Name == "bn")">Bangla</option>
+</select>
+
+@code {
+    private CultureInfo CurrentCulture => CultureInfo.CurrentUICulture;
+
+    private void ChangeLanguage(ChangeEventArgs e)
+    {
+        var culture = e.Value?.ToString() ?? "en";
+        var uri = new Uri(NavigationManager.Uri).GetComponents(UriComponents.PathAndQuery, UriFormat.Unescaped);
+        var cultureEscaped = Uri.EscapeDataString(culture);
+        var uriEscaped = Uri.EscapeDataString(uri);
+
+        NavigationManager.NavigateTo(
+            $"Culture/Set?culture={cultureEscaped}&redirectUri={uriEscaped}",
+            forceLoad: true);
+    }
+}

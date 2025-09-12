@@ -1,0 +1,161 @@
+@page "/purchases"
+@inherits LayoutComponentBase
+
+@using Client.Shared.Pages.Shared
+@using Client.Shared.Services
+@using MudBlazor
+@inject ISnackbar Snackbar
+@inject PurchaseService PurchaseService
+
+
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+
+<MudCard Class="p-4 shadow-lg">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <!-- Search -->
+        <MudTextField @bind-Value="_searchText" Placeholder="Search purchases..." Variant="Variant.Text"
+            Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+            DebounceInterval="500" OnDebounceIntervalElapsed="OnSearchChanged" Class="w-50" />
+
+        <!-- Actions -->
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Start" Class="w-50" Justify="Justify.FlexEnd">
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Print"
+                OnClick="Print">
+                Print
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                OnClick="addNew">
+                Add New
+            </MudButton>
+        </MudStack>
+    </MudStack>
+</MudCard>
+
+<MudCard Class="p-4 mt-4 shadow-lg">
+    <MudTable @ref="_table" T="PurchaseVM" ServerData="LoadServerData" Dense="true" Hover="true"
+        Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+
+            <MudTh>
+                <MudTableSortLabel T="PurchaseVM">Purchase No</MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel T="PurchaseVM">Purchase Date</MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel T="PurchaseVM">Status</MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel T="PurchaseVM">Supplier</MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel T="PurchaseVM">Total</MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel T="PurchaseVM">Payment</MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel T="PurchaseVM">Due</MudTableSortLabel>
+            </MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+
+        <RowTemplate>
+            <MudTd DataLabel="PurchaseNo">@context.PurchaseNo</MudTd>
+            <MudTd DataLabel="Name">@context.PurchaseDate</MudTd>
+            <MudTd DataLabel="Name">@context.Status</MudTd>
+            <MudTd DataLabel="Name">@context.Suppiler.Name</MudTd>
+            <MudTd DataLabel="Category">@context.Total</MudTd>
+            <MudTd DataLabel="Brand">@context.Payment</MudTd>
+            <MudTd DataLabel="Brand">@context.DueAmount</MudTd>
+            <MudTd>
+                <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Edit" Color="Color.Primary"
+                    OnClick="@(() => Editpurchase(@context.Id))" />
+                <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" Color="Color.Warning"
+                    OnClick="@(async () => await ConfirmAsync(context))" />
+            </MudTd>
+        </RowTemplate>
+
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudCard>
+
+
+@code {
+    private MudTable<PurchaseVM>? _table;
+    private string _searchText = "";
+    private void OnSearchChanged(string text)
+    {
+        _searchText = text;
+        _ = _table?.ReloadServerData();
+    }
+    public async Task<TableData<PurchaseVM>> LoadServerData(TableState state, CancellationToken cancellationToken)
+    {
+        var page = state.Page + 1; // MudTable is 0-based
+        var pageSize = state.PageSize;
+
+        var result = await PurchaseService.GetAsync(_searchText, page, pageSize);
+
+        return new TableData<PurchaseVM>
+        {
+            Items = result.Data.Select(x => new
+            PurchaseVM(x.Id, x.PurchaseNo,
+            x.PurchaseDate.ToString(),
+            x.Status,
+            x.TotalAmount, x.DueAmount, x.PaidAmount, x.Supplier)),
+            TotalItems = result.Total
+        };
+    }
+
+    public void Print() => Snackbar.Add("Print feature not implemented yet.", Severity.Info);
+
+    public void addNew()
+    {
+        Navigation.NavigateTo("/purchase-form");
+    }
+
+    public void Editpurchase(string purchaseId)
+    {
+        Navigation.NavigateTo($"/purchase-form/{purchaseId}");
+
+    }
+
+    private async Task ConfirmAsync(PurchaseVM purchase)
+    {
+        var parameters = new DialogParameters
+{
+{ "ContentText", "Are you sure you want to delete this purchase?" },
+{ "ButtonText", "Yes" },
+{ "Color", Color.Success }
+};
+
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Confirm", parameters, new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.ExtraSmall,
+            FullWidth = true
+        });
+
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await PurchaseService.DeleteAsync(purchase.Id);
+            Snackbar.Add("purchase deleted successfully!", Severity.Success);
+            await _table!.ReloadServerData();
+        }
+    }
+
+    public record PurchaseVM(
+    string Id,
+    string PurchaseNo,
+    string PurchaseDate,
+    string Status,
+    double Total,
+    double DueAmount,
+    double Payment,
+    EntityRef Suppiler
+    );
+}

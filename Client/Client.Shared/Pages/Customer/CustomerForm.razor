@@ -1,0 +1,84 @@
+@using Client.Shared.Services
+@inject CustomerService CustomerService
+@inject NavigationManager Navigation
+@inject IStringLocalizer<Shared> L
+<MudPaper Class="pa-4">
+    <MudForm @ref="_form" Model="Customer" @bind-IsValid="@_success">
+        <MudTextField T="string" Label="Name" @bind-Value="Customer.Name" Required="true"
+            RequiredError="Name is required!" />
+        <MudTextField T="string" Label="Phone" @bind-Value="Customer.Phone" />
+        <MudTextField T="string" Label="Email" Required="true"
+            @bind-Value="Customer.Email" /> 
+        <MudTextField T="string" Label="Address" Lines="2" @bind-Value="Customer.Address" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!_success)" Class="mt-2 ml-auto"
+            OnClick="Submit">
+            @L["Save"] 
+        </MudButton>
+    </MudForm>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public CustomerModel Customer { get; set; } = new ();
+
+    [Parameter]
+    public EventCallback<CustomerModel> OnSubmitCompleted { get; set; }
+
+    private bool IsEditMode => String.IsNullOrEmpty(Customer?.Id) == false;
+    private bool _success;
+    private MudForm? _form;
+
+    protected override void OnParametersSet()
+    {
+        if (IsEditMode)
+        {
+            Customer = new CustomerModel
+            {
+                Id = Customer.Id,
+                Name = Customer.Name,
+                Phone = Customer.Phone,
+                Email = Customer.Email,
+                Address = Customer.Address
+            };
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (_form is null)
+            return;
+        if (_form.IsValid)
+        {
+            try
+            {
+                if (IsEditMode)
+                {
+                    await CustomerService.UpdateAsync(Customer.Id, new UpdateCustomerDto(Customer.Name,
+                    Customer.Phone, Customer.Email, Customer.Address));
+                    await OnSubmitCompleted.InvokeAsync(Customer);
+                }
+                else
+                {
+                    var respone = await CustomerService.CreateAsync(new CreateCustomerDto(Customer.Name,
+                    Customer.Phone, Customer.Email, Customer.Address));
+                    Customer.Id = respone.Id;
+                    await OnSubmitCompleted.InvokeAsync(Customer);
+                }
+                Navigation.NavigateTo("/customers");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($@"Error: {ex.Message}");
+            }
+        }
+    }
+
+    public class CustomerModel
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+    }
+}
