@@ -1,21 +1,24 @@
-﻿using Api.Entities;
+﻿using Api;
+using Api.Entities;
 using Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Api.Controllers;
-
 [ApiController]
 [Route("api/[controller]")]
 public class UnitConversionController(
-    ILogger<UnitsController> logger,
+    ILogger<UnitConversionController> logger,
     StoreDbContext context) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> Get([FromQuery] Query unitQuery)
+    public async Task<ActionResult<Paging<GetUnitConversionResponse>>> Get([FromQuery] Query unitQuery)
     {
         logger.LogInformation("Get Unit Conversion");
-        var queryable = context.UnitConversions.AsNoTracking();
+
+        var queryable = context.UnitConversions
+            .Include(x => x.FromUnit)
+            .Include(x => x.ToUnit)
+            .AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(unitQuery.Search))
         {
@@ -28,98 +31,101 @@ public class UnitConversionController(
             .Skip((unitQuery.Page - 1) * unitQuery.PageSize)
             .Take(unitQuery.PageSize)
             .Select(x => new GetUnitConversionResponse(
-                x.Id, new EntityRef(x.FromUnit.Id, x.FromUnit.Name),
-                new EntityRef(x.FromUnit.Id, x.FromUnit.Name), x.Factor))
+                x.Id,
+                new EntityRef(x.FromUnit.Id, x.FromUnit.Name),
+                new EntityRef(x.ToUnit.Id, x.ToUnit.Name),
+                x.Factor))
             .ToListAsync();
 
-        var response = new Paging<GetUnitConversionResponse>()
+        return Ok(new Paging<GetUnitConversionResponse>
         {
             Data = unitConversions,
             Page = unitQuery.Page,
             PageSize = unitQuery.PageSize,
             Total = totalCount
-        };
-
-        return Ok(response);
+        });
     }
 
     [HttpGet("{id}")]
-    async Task<ActionResult> Get(string id)
+    public async Task<ActionResult<GetUnitConversionResponse>> GetById(string id)
     {
-        var find = await context.UnitConversions.FindAsync(id);
-        if (find is null)
-            return NotFound();
-        var response = new GetUnitConversionResponse(
-               find.Id, new EntityRef(find.FromUnit.Id, find.FromUnit.Name),
-                new EntityRef(find.FromUnit.Id, find.FromUnit.Name), find.Factor);
-        return Ok(response);
+        var find = await context.UnitConversions
+            .Include(x => x.FromUnit)
+            .Include(x => x.ToUnit)
+            .FirstOrDefaultAsync(x => x.Id == id);
+
+        if (find is null) return NotFound();
+
+        return Ok(new GetUnitConversionResponse(
+            find.Id,
+            new EntityRef(find.FromUnit.Id, find.FromUnit.Name),
+            new EntityRef(find.ToUnit.Id, find.ToUnit.Name),
+            find.Factor));
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] CreateUnitConversionRequest request)
+    public async Task<ActionResult<GetUnitConversionResponse>> Post([FromBody] CreateUnitConversionRequest request)
     {
+        var fromUnit = await context.Units.FindAsync(request.FromUnitId);
+        if (fromUnit is null) return BadRequest("From unit not found.");
 
-        var formUnit = await context.Units.FindAsync(request.FromUnitId);
-        if (formUnit is null)
-        {
-            return BadRequest("From unit not found.");
-        }
         var toUnit = await context.Units.FindAsync(request.ToUnitId);
-        if (toUnit is null)
-        {
-            return BadRequest("To unit not found.");
-        }
+        if (toUnit is null) return BadRequest("To unit not found.");
 
-        var unitConversion = new UnitConversion()
+        var unitConversion = new UnitConversion
         {
             Id = Guid.NewGuid().ToString(),
             FromUnitId = request.FromUnitId,
-            ToUnitId = request.FromUnitId,
+            ToUnitId = request.ToUnitId,
             Factor = request.Factor
         };
+
         await context.UnitConversions.AddAsync(unitConversion);
         await context.SaveChangesAsync();
-        return Ok(unitConversion.Id);
+
+        var response = new GetUnitConversionResponse(
+            unitConversion.Id,
+            new EntityRef(fromUnit.Id, fromUnit.Name),
+            new EntityRef(toUnit.Id, toUnit.Name),
+            unitConversion.Factor);
+
+        return CreatedAtAction(nameof(GetById), new { id = unitConversion.Id }, response);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Put(string id, [FromBody] UpdateUnitConversionRequest request)
+    public async Task<ActionResult<GetUnitConversionResponse>> Put(string id, [FromBody] UpdateUnitConversionRequest request)
     {
         var find = await context.UnitConversions.FindAsync(id);
-        if (find is null)
-        {
-            return NotFound();
-        }
-        var formUnit = await context.Units.FindAsync(request.FromUnitId);
-        if (formUnit is null)
-        {
-            return BadRequest("From unit not found.");
-        }
+        if (find is null) return NotFound();
+
+        var fromUnit = await context.Units.FindAsync(request.FromUnitId);
+        if (fromUnit is null) return BadRequest("From unit not found.");
+
         var toUnit = await context.Units.FindAsync(request.ToUnitId);
-        if (toUnit is null)
-        {
-            return BadRequest("To unit not found.");
-        }
+        if (toUnit is null) return BadRequest("To unit not found.");
 
         find.FromUnitId = request.FromUnitId;
-        find.ToUnitId = request.FromUnitId;
+        find.ToUnitId = request.ToUnitId;
         find.Factor = request.Factor;
+
         await context.SaveChangesAsync();
-        var response = new GetUnitConversionResponse(
-                find.Id, new EntityRef(find.FromUnit.Id, find.FromUnit.Name),
-                 new EntityRef(find.FromUnit.Id, find.FromUnit.Name), find.Factor);
-        return Ok(response);
+
+        return Ok(new GetUnitConversionResponse(
+            find.Id,
+            new EntityRef(fromUnit.Id, fromUnit.Name),
+            new EntityRef(toUnit.Id, toUnit.Name),
+            find.Factor));
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
         var find = await context.UnitConversions.FindAsync(id);
-        if (find is null)
-            return NotFound();
+        if (find is null) return NotFound();
 
         context.UnitConversions.Remove(find);
         await context.SaveChangesAsync();
-        return Ok();
+
+        return NoContent(); // 204 is better for delete
     }
 }

@@ -13,7 +13,7 @@ public class UnitConversionService(IHttpClientFactory httpClientFactory)
         int pageSize = 10
     )
     {
-        var response = await _httpClient.GetAsync($"api/unitconversion?search={search}&page={page}&pageSize={pageSize}");
+        var response = await _httpClient.GetAsync($"api/unitConversion?search={search}&page={page}&pageSize={pageSize}");
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<Pages<UnitConversionDto>>();
         return result ?? throw new InvalidOperationException("Failed to retrieve unitconversion.");
@@ -27,28 +27,23 @@ public class UnitConversionService(IHttpClientFactory httpClientFactory)
         return result ?? throw new InvalidOperationException($"Brand with id {id} not found.");
     }
 
-    public async Task<UnitConversionDto> CreateAsync(CreateUnitConversionDto Brand)
+    public async Task<UnitConversionDto> CreateAsync(CreateUnitConversionDto unitconversion)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/unitconversion", Brand);
+        var response = await _httpClient.PostAsJsonAsync("api/unitconversion", unitconversion);
         response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<UnitConversionDto>()
+                       ?? throw new InvalidOperationException("Failed to create Unit Conversion.");
 
-        var content = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<UnitConversionDto>(content, new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        })!;
     }
 
-    public async Task<UnitConversionDto> UpdateAsync(string id, UpdateUnitConversionDto Brand)
+    public async Task<UnitConversionDto> UpdateAsync(string id, UpdateUnitConversionDto unitConversion)
     {
-        var response = await _httpClient.PutAsJsonAsync($"api/unitconversion/{id}", Brand);
+        var response = await _httpClient.PutAsJsonAsync($"api/unitconversion/{id}", unitConversion);
         response.EnsureSuccessStatusCode();
 
-        var content = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<UnitConversionDto>(content, new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        })!;
+        return await response.Content.ReadFromJsonAsync<UnitConversionDto>()
+                              ?? throw new InvalidOperationException("Failed to update Unit Conversion.");
+
     }
 
 

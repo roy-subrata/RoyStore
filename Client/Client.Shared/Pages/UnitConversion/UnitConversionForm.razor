@@ -65,11 +65,12 @@
             }
             else
             {
-                var respone = await UnitConversionService.CreateAsync(new CreateUnitConversionDto(Model.FromUnit.Id,
+                UnitConversionDto respone = await UnitConversionService.CreateAsync(new CreateUnitConversionDto(Model.FromUnit.Id,
                 Model.ToUnit.Id, Model.Factor));
                 Model.Id = respone.Id;
                 await OnSubmitCompleted.InvokeAsync(Model);
             }
+            Navigation.NavigateTo("/unitconversion");
         }
     }
     private async Task<IEnumerable<EntityRef>> SearchUnit(string value, CancellationToken cancellationToken)
