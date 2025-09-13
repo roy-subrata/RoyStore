@@ -61,8 +61,8 @@ public class UnitService(IHttpClientFactory httpClientFactory)
 
 
 
-public record UnitDto(string Id, string Name, bool IsBaseUnit); // Changed Id to int
+public record UnitDto(string Id, string Name,string ShortCode, bool IsBaseUnit); // Changed Id to int
 
-public record CreateUnitDto(string Name, bool IsBaseUnit);
+public record CreateUnitDto(string Name, string ShortCode,bool IsBaseUnit);
 
-public record UpdateUnitDto(string Id, string Name, bool IsBaseUnit);
+public record UpdateUnitDto(string Id, string Name, string ShortCode, bool IsBaseUnit);

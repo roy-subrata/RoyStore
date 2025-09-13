@@ -6,20 +6,20 @@
 <MudPaper Class="pa-4">
     <MudForm @ref="_form" Model="Model" @bind-IsValid="@_success">
         <MudTextField T="string" Label="Name" @bind-Value="Model.Name" Required="true"
-                      RequiredError="Name is required!" />
-        
+            RequiredError="Name is required!" />
+
         <MudCheckBox Label="Active" @bind-Value="Model.IsActive" />
-        
+
         <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!_success)" Class="mt-2 ml-auto"
             OnClick="Submit">
-            @L["Save"] 
+            @L["Save"]
         </MudButton>
     </MudForm>
 </MudPaper>
 
 @code {
     [Parameter]
-    public FeatureModel Model { get; set; } = new ();
+    public FeatureModel Model { get; set; } = new();
 
     [Parameter]
     public EventCallback<FeatureModel> OnSubmitCompleted { get; set; }
@@ -27,7 +27,6 @@
     private bool IsEditMode => String.IsNullOrEmpty(Model.Id) == false;
     private bool _success;
     private MudForm? _form;
-
 
     protected override void OnParametersSet()
     {
@@ -52,7 +51,7 @@
             {
                 if (IsEditMode)
                 {
-                    await FeatureService.UpdateAsync(Model.Id, new UpdateFeature(Model.Id,Model.Name,
+                    await FeatureService.UpdateAsync(Model.Id, new UpdateFeature(Model.Id, Model.Name,
                     Model.IsActive));
                     await OnSubmitCompleted.InvokeAsync(Model);
                 }

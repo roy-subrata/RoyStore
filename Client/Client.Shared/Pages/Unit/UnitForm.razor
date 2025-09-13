@@ -1,0 +1,87 @@
+@using Client.Shared.Services
+@inject UnitService UnitService
+@inject NavigationManager Navigation
+@inject IStringLocalizer<Shared> L
+
+<MudPaper Class="pa-4">
+    <MudForm @ref="form" Model="Model" @bind-IsValid="@success">
+        <MudTextField T="string" Label="Name" @bind-Value="Model.Name" Required="true"
+            RequiredError="Name is required!" />
+        <MudTextField T="string" Label="Short Code" @bind-Value="Model.ShortCode" Required="true"
+            RequiredError="ShortCode is required" />
+        <MudCheckBox Label="Active" @bind-Value="Model.IsBaseUnit" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!success)" Class="mt-2 ml-auto"
+            OnClick="Submit">
+            @L["Save"]
+        </MudButton>
+    </MudForm>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public UnitModel Model { get; set; } = new UnitModel();
+    [Parameter]
+    public EventCallback<UnitModel> OnSubmitCompleted { get; set; }
+    private bool IsEditMode => String.IsNullOrEmpty(Model?.Id) == false;
+    private bool success;
+    private MudForm? form;
+
+    protected override void OnParametersSet()
+    {
+        if (IsEditMode && Model != null)
+        {
+            Model = new UnitModel
+            {
+                Id = Model.Id,
+                Name = Model.Name,
+                ShortCode = Model.ShortCode,
+                IsBaseUnit = Model.IsBaseUnit
+            };
+        }
+        else
+        {
+            Model = new UnitModel();
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (form is null)
+            return;
+        if (form.IsValid)
+        {
+            try
+            {
+                if (IsEditMode)
+                {
+                    await UnitService.UpdateAsync(Model.Id, new UpdateUnitDto(Model.Id, Model.Name,
+                    Model.ShortCode, Model.IsBaseUnit));
+                    await OnSubmitCompleted.InvokeAsync(Model);
+                }
+                else
+                {
+                    var respone = await UnitService.CreateAsync(new CreateUnitDto(Model.Name, Model.ShortCode, Model.IsBaseUnit));
+                    Model.Id = respone.Id;
+                    await OnSubmitCompleted.InvokeAsync(Model);
+                }
+                Navigation.NavigateTo("/units");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+            }
+        }
+    }
+
+    public class UnitModel
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string ShortCode { get; set; } = string.Empty;
+        public bool IsBaseUnit { get; set; } = false;
+        public string BaseUnit
+        {
+            get => IsBaseUnit ? "Yes" : "No";
+        }
+    }
+}

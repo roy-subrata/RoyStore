@@ -63,6 +63,6 @@ public class UnitConversionService(IHttpClientFactory httpClientFactory)
 
 public record UnitConversionDto(string Id, EntityRef FromUnit, EntityRef ToUnit, double Factor); // Changed Id to int
 
-public record CreateUnitConversionDto(string FromUnit, string ToUnit, double Factor);
+public record CreateUnitConversionDto(string FromUnitId, string ToUnitId, double Factor);
 
-public record UpdateUnitConversionDto(string Id, string FromUnit, string ToUnit, double Factor);
+public record UpdateUnitConversionDto(string Id, string FromUnitId, string ToUnitId, double Factor);

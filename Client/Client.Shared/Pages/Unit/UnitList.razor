@@ -1,17 +1,19 @@
-@page "/features"
+@page "/units"
+@inherits LayoutComponentBase
+
 @using Client.Shared.Pages.Shared
 @using Client.Shared.Services
-@inherits LayoutComponentBase
-@inject IDialogService DialogService
-@inject FeatureService FeatureService
-@inject ISnackbar Snackbar
 
-@using static Client.Shared.Pages.Feature.FeatureForm
+@using static Client.Shared.Pages.Unit.UnitForm
+
+@inject IDialogService DialogService
+@inject UnitService UnitService
+@inject ISnackbar Snackbar
 
 <MudCard Class="p-4 shadow-lg">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
         <!-- Search -->
-        <MudTextField @bind-Value="_searchText" Placeholder="Search features..." Variant="Variant.Text"
+        <MudTextField @bind-Value="_searchText" Placeholder="Search units..." Variant="Variant.Text"
             Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
             DebounceInterval="500" OnDebounceIntervalElapsed="OnSearchChanged" Class="w-50" />
 
@@ -30,23 +32,27 @@
 </MudCard>
 
 <MudCard Class="p-4 mt-4 shadow-lg">
-    <MudTable @ref="_table" T="FeatureVm" ServerData="LoadServerData" @bind-SelectedItem="_selectedBrand" Dense="true"
+    <MudTable @ref="_table" T="UnitVm" ServerData="LoadServerData" @bind-SelectedItem="_selectedBrand" Dense="true"
         Hover="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
             <MudTh>
-                <MudTableSortLabel T="FeatureVm" SortBy="x => x.Name">Name</MudTableSortLabel>
+                <MudTableSortLabel T="UnitVm" SortBy="x => x.Name">Name</MudTableSortLabel>
             </MudTh>
             <MudTh>
-                <MudTableSortLabel T="FeatureVm" SortBy="x => x.Active">Active</MudTableSortLabel>
+                <MudTableSortLabel T="UnitVm" SortBy="x => x.ShortCode">ShortCode</MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel T="UnitVm" SortBy="x => x.BaseUnit">Base Unit</MudTableSortLabel>
             </MudTh>
             <MudTh>Actions</MudTh>
         </HeaderContent>
 
         <RowTemplate>
             <MudTd DataLabel="Name">@context.Name</MudTd>
-            <MudTd DataLabel="Active">@context.Active</MudTd>
+            <MudTd DataLabel="ShortCode">@context.ShortCode</MudTd>
+            <MudTd DataLabel="Base Unit">@context.BaseUnit</MudTd>
             <MudTd>
-                <MudIconButton Size="Size.Small" OnClick="@(async () => await EditDialogAsync(context))"
+                <MudIconButton Size="Size.Small" OnClick="@(async () => await EditDailogAsync(context))"
                     Icon="@Icons.Material.Outlined.Edit" Color="Color.Primary" />
                 <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" Color="Color.Warning"
                     OnClick="@(async () => await ConfirmAsync(context))" />
@@ -61,24 +67,25 @@
 
 @code {
     private string _searchText = "";
-    private FeatureVm? _selectedBrand;
+    private UnitVm? _selectedBrand;
 
     // Main server-side data loader
-    private async Task<TableData<FeatureVm>> LoadServerData(TableState state, CancellationToken cancellationToken)
+    private async Task<TableData<UnitVm>> LoadServerData(TableState state, CancellationToken cancellationToken)
     {
         var page = state.Page + 1; // MudTable is 0-based
         var pageSize = state.PageSize;
 
-        var result = await FeatureService.GetAsync(_searchText, page, pageSize);
+        var result = await UnitService.GetAsync(_searchText, page, pageSize);
 
-        var items = result.Data.Select(c => new FeatureVm
+        var items = result.Data.Select(c => new UnitVm
         {
             Id = c.Id,
             Name = c.Name,
-            IsActive = c.IsActive
+            ShortCode = c.ShortCode,
+            IsBaseUnit = c.IsBaseUnit
         }).ToList();
 
-        return new TableData<FeatureVm>
+        return new TableData<UnitVm>
         {
             Items = items,
             TotalItems = result.Total
@@ -91,15 +98,15 @@
         _ = _table?.ReloadServerData();
     }
 
-    private MudTable<FeatureVm>? _table;
+    private MudTable<UnitVm>? _table;
 
     private void Print() => Snackbar.Add("Print feature not implemented yet.", Severity.Info);
 
-    private async Task ConfirmAsync(FeatureVm feature)
+    private async Task ConfirmAsync(UnitVm Brand)
     {
         var parameters = new DialogParameters
 {
-{ "ContentText", "Are you sure you want to delete this feature?" },
+{ "ContentText", "Are you sure you want to delete this Unit?" },
 { "ButtonText", "Yes" },
 { "Color", Color.Success }
 };
@@ -112,29 +119,32 @@
         });
 
         var result = await dialog.Result;
-        if (result is { Canceled: false })
+        if (result != null && !result.Canceled)
         {
-            await FeatureService.DeleteAsync(feature.Id);
-            Snackbar.Add("Feature deleted successfully!", Severity.Success);
+            await UnitService.DeleteAsync(Brand.Id);
+            Snackbar.Add("Brand deleted successfully!", Severity.Success);
             await _table!.ReloadServerData();
         }
     }
 
-    private async Task HandleBrandSavedAsync(FeatureModel result)
+    private async Task HandleunitsavedAsync(UnitModel result)
     {
-        Snackbar.Add("Feature saved successfully!", Severity.Success);
-        await _table!.ReloadServerData();
+        if (result is not null)
+        {
+            Snackbar.Add("Unit saved successfully!", Severity.Success);
+            await _table!.ReloadServerData();
+        }
     }
 
     private async Task OpenAddDialog()
     {
         var parameters = new DialogParameters
 {
-{ "Model", new FeatureModel() },
-{ "OnSubmitCompleted", EventCallback.Factory.Create<FeatureModel>(this, HandleBrandSavedAsync) }
+{ "Model", new UnitModel() },
+{ "OnSubmitCompleted", EventCallback.Factory.Create<UnitModel>(this, HandleunitsavedAsync) }
 };
 
-        var dialog = await DialogService.ShowAsync<FeatureForm>("Add Feature", parameters, new DialogOptions
+        var dialog = await DialogService.ShowAsync<UnitForm>("Add Unit", parameters, new DialogOptions
         {
             CloseButton = true,
             MaxWidth = MaxWidth.Small,
@@ -142,48 +152,52 @@
         });
 
         var result = await dialog.Result;
-        if (result is { Canceled: false })
+        if (result != null && !result.Canceled)
         {
-            Snackbar.Add("Feature saved successfully!", Severity.Success);
+            Snackbar.Add("Unit saved successfully!", Severity.Success);
             await _table!.ReloadServerData();
         }
     }
 
-    private async Task EditDialogAsync(FeatureVm feature)
+    private async Task EditDailogAsync(UnitVm unit)
     {
-        var model = new FeatureModel
+        UnitModel unitModel = new UnitModel
         {
-            Id = feature.Id,
-            Name = feature.Name,
-            IsActive = feature.IsActive
+            Id = unit.Id,
+            Name = unit.Name,
+            ShortCode = unit.ShortCode,
+            IsBaseUnit = unit.IsBaseUnit
         };
 
-        var dialog = await DialogService.ShowAsync<FeatureForm>("Edit Feature",
+        var dialog = await DialogService.ShowAsync<UnitForm>("Edit Unit",
         new DialogParameters
         {
-{ "Model", model },
-{ "OnSubmitCompleted", EventCallback.Factory.Create<FeatureModel>(this, HandleBrandSavedAsync) }
+{ "Model", unitModel },
+{ "OnSubmitCompleted", EventCallback.Factory.Create<UnitModel>(this, HandleunitsavedAsync) }
         },
         new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
 
         var result = await dialog.Result;
-        if (result is { Canceled: false })
+        if (result != null && !result.Canceled)
         {
-            Snackbar.Add("Feature updated successfully!", Severity.Success);
+            Snackbar.Add("Unit updated successfully!", Severity.Success);
             await _table!.ReloadServerData();
         }
     }
 
-    private class FeatureVm
+    private class UnitVm
     {
-        public string Id { get; set; } = "";
+        public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = "";
-
-        public string Active
+        public string ShortCode { get; set; } = "";
+        public bool IsBaseUnit { get; set; }
+        public string BaseUnit
         {
-            get => IsActive ? "Yes" : "No";
+            get => IsBaseUnit ? "Yes" : "No";
         }
 
-        public bool IsActive { get; set; }
+
+
     }
+
 }
