@@ -28,7 +28,7 @@ public class UnitsController(
             .OrderBy(b => b.Name)
             .Skip((unitQuery.Page - 1) * unitQuery.PageSize)
             .Take(unitQuery.PageSize)
-            .Select(x => new GetUnitResponse(x.Id, x.Name, x.ShortCode, x.ConversionToBase))
+            .Select(x => new GetUnitResponse(x.Id, x.Name, x.ShortCode, x.IsBaseUnit))
             .ToListAsync();
 
         var response = new Paging<GetUnitResponse>()
@@ -48,7 +48,7 @@ public class UnitsController(
         var find = await context.Units.FindAsync(id);
         if (find is null)
             return NotFound();
-        var response = new GetUnitResponse(find.Id, find.Name, find.ShortCode, find.ConversionToBase);
+        var response = new GetUnitResponse(find.Id, find.Name, find.ShortCode, find.IsBaseUnit);
         return Ok(response);
     }
 
@@ -60,11 +60,11 @@ public class UnitsController(
             Id = Guid.NewGuid().ToString(),
             Name = request.Name,
             ShortCode = request.ShortCode,
-            ConversionToBase = request.ConversionToBase
+            IsBaseUnit = request.IsBaseUnit
         };
         await context.Units.AddAsync(unit);
         await context.SaveChangesAsync();
-        var response = new GetUnitResponse(unit.Id, unit.Name, unit.ShortCode, unit.ConversionToBase);
+        var response = new GetUnitResponse(unit.Id, unit.Name, unit.ShortCode, unit.IsBaseUnit);
         return Ok(response);
     }
 
@@ -79,9 +79,9 @@ public class UnitsController(
 
         find.Name = request.Name;
         find.ShortCode = request.ShortCode;
-        find.ConversionToBase = request.ConversionToBase;
+        find.IsBaseUnit = request.IsBaseUnit;
         await context.SaveChangesAsync();
-        var response = new GetUnitResponse(find.Id, find.Name, find.ShortCode, find.ConversionToBase);
+        var response = new GetUnitResponse(find.Id, find.Name, find.ShortCode, find.IsBaseUnit);
         return Ok(response);
     }
 

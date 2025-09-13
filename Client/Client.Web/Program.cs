@@ -39,6 +39,8 @@ builder.Services.AddScoped<BrandService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<PurchaseService>();
 builder.Services.AddScoped<FeatureService>();
+builder.Services.AddScoped<UnitService>();
+builder.Services.AddScoped<UnitConversionService>();
 
 var app = builder.Build();
 // Must be before other middleware that uses localization

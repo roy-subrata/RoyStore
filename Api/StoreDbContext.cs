@@ -10,6 +10,7 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options)
 {
     public DbSet<Brand> Brands { get; set; }
     public DbSet<Unit> Units { get; set; }
+    public DbSet<UnitConversion> UnitConversions { get; set; }
     public DbSet<Supplier> Suppliers { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<Product> Products { get; set; }
