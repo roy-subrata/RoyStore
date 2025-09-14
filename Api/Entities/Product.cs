@@ -15,6 +15,8 @@ public class Product : BaseEntity
     public string? ImageUrl { get; set; }
     public bool? IsActive { get; set; } = true;
     public decimal StockQuantity { get; set; } = 0;  // Current stock
+    public Unit BaseUnit { get; set; } = null!;
+    public string UnitId { get; set; } = null!;
     public ICollection<PurchaseItem> PurchaseItems { get; set; } = new List<PurchaseItem>();
     public ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
     public ICollection<ProductFeature> ProductFeatures { get; set; } = new List<ProductFeature>();

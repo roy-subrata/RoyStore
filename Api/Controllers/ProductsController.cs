@@ -43,6 +43,7 @@ public class ProductsController(ILogger<ProductsController> logger, StoreDbConte
                     p.Description,
                 new EntityRef(p.BrandId, p.Brand.Name),
                 new EntityRef(p.CategoryId, p.Category.Name),
+                   new EntityRef(p.BaseUnit.Id, p.BaseUnit.Name),
                 p.ProductFeatures.Select(f => new GetProductFeature(
                     f.FeatureValue.FeatureId,
                     f.FeatureValue.Feature.Name,
@@ -79,6 +80,7 @@ public class ProductsController(ILogger<ProductsController> logger, StoreDbConte
                     p.Description,
                 new EntityRef(p.BrandId, p.Brand.Name),
                 new EntityRef(p.CategoryId, p.Category.Name),
+                   new EntityRef(p.BaseUnit.Id, p.BaseUnit.Name),
                 p.ProductFeatures.Select(f => new GetProductFeature(
                     f.FeatureValue.FeatureId,
                     f.FeatureValue.Feature.Name,
@@ -104,6 +106,10 @@ public class ProductsController(ILogger<ProductsController> logger, StoreDbConte
         if (category == null)
             return BadRequest(new { error = $"Category with ID {request.CategoryId} was not found." });
 
+        var unit = await dbContext.Units.FindAsync(request.UnitId);
+        if (unit == null)
+            return BadRequest(new { error = $"Unit with ID {request.UnitId} was not found." });
+
         var product = new Product
         {
             Id = Guid.NewGuid().ToString(),
@@ -112,6 +118,7 @@ public class ProductsController(ILogger<ProductsController> logger, StoreDbConte
             PartNo = request.PartNo,
             BrandId = request.BrandId,
             CategoryId = request.CategoryId,
+            UnitId = request.UnitId,
             Description = request.Description,
             ProductFeatures = new List<ProductFeature>()
         };
@@ -158,6 +165,7 @@ public class ProductsController(ILogger<ProductsController> logger, StoreDbConte
             product.Description,
             new EntityRef(product.BrandId, brand.Name),
             new EntityRef(product.CategoryId, category.Name),
+               new EntityRef(product.BaseUnit.Id, product.BaseUnit.Name),
             product.ProductFeatures.Select(f => new GetProductFeature(
                 f.FeatureValue.FeatureId,
                 f.FeatureValue.Feature.Name,
@@ -197,12 +205,17 @@ public class ProductsController(ILogger<ProductsController> logger, StoreDbConte
             if (category == null)
                 return BadRequest(new { error = $"Category with ID {request.CategoryId} not found." });
 
+            var unit = await dbContext.Units.FindAsync(request.UnitId);
+            if (unit == null)
+                return BadRequest(new { error = $"Unit with ID {request.UnitId} was not found." });
+
             // Update basic fields
             product.Name = request.Name;
             product.LocalName = request.LocalName;
             product.PartNo = request.PartNo;
             product.BrandId = request.BrandId;
             product.CategoryId = request.CategoryId;
+            product.UnitId = request.UnitId;
             product.Description = request.Description;
 
             // Handle features
@@ -260,6 +273,7 @@ public class ProductsController(ILogger<ProductsController> logger, StoreDbConte
                 product.Description,
                 new EntityRef(product.BrandId, brand.Name),
                 new EntityRef(product.CategoryId, category.Name),
+                new EntityRef(product.BaseUnit.Id, product.BaseUnit.Name),
                 product.ProductFeatures.Select(pf => new GetProductFeature(
                     pf.FeatureValue.FeatureId,
                     pf.FeatureValue.Feature.Name,

@@ -11,6 +11,7 @@ public record GetProductResponse(
     string Description,
     EntityRef Brand,
     EntityRef Category,
+    EntityRef Unit,
     List<GetProductFeature> Features);
 
 public record GetProductFeature(
@@ -24,6 +25,7 @@ public record CreateProductRequest(
     string PartNo,
     string BrandId,
     string CategoryId,
+      string UnitId,
     string Description,
     List<CreateProductFeature> Features);
 
@@ -34,6 +36,7 @@ public record UpdateProductRequest(
     string PartNo,
     string BrandId,
     string CategoryId,
+    string UnitId,
     string Description,
     List<CreateProductFeature> Features);
 

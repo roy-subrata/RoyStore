@@ -53,6 +53,7 @@ public record GetProductDto(
     string PartNo,
     EntityRef Brand,
     EntityRef Category,
+    EntityRef Unit,
     List<GetProductFeatureDto> Features,
     string Description);
 
@@ -66,6 +67,7 @@ public record CreateProductDto(
     string PartNo,
     string BrandId,
     string CategoryId,
+    string UnitId,
     string Description,
     List<CreateFeatureDto> Features);
 
@@ -76,6 +78,7 @@ public record UpdateProductDto(
     string PartNo,
     string BrandId,
     string CategoryId,
+    string UnitId,
     string Description,
     List<CreateFeatureDto> Features);
 

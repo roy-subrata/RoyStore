@@ -8,56 +8,55 @@
 
 @using static Client.Shared.Pages.Feature.FeatureForm
 
-<MudCard Class="p-4 shadow-lg">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-        <!-- Search -->
-        <MudTextField @bind-Value="_searchText" Placeholder="Search features..." Variant="Variant.Text"
-            Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-            DebounceInterval="500" OnDebounceIntervalElapsed="OnSearchChanged" Class="w-50" />
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+    <!-- Search -->
+    <MudTextField @bind-Value="_searchText" Placeholder="Search features..." Variant="Variant.Outlined"
+        Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+        DebounceInterval="500" OnDebounceIntervalElapsed="OnSearchChanged" Class="w-50" />
 
-        <!-- Actions -->
-        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Start" Class="w-50" Justify="Justify.FlexEnd">
-            <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Print"
-                OnClick="Print">
-                Print
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                OnClick="OpenAddDialog">
-                Add New
-            </MudButton>
-        </MudStack>
+    <!-- Actions -->
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Start" Class="w-50" Justify="Justify.FlexEnd">
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Print"
+            OnClick="Print">
+            Print
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+            OnClick="OpenAddDialog">
+            Add New
+        </MudButton>
     </MudStack>
-</MudCard>
+</MudStack>
 
-<MudCard Class="p-4 mt-4 shadow-lg">
-    <MudTable @ref="_table" T="FeatureVm" ServerData="LoadServerData" @bind-SelectedItem="_selectedBrand" Dense="true"
-        Hover="true" Breakpoint="Breakpoint.Sm">
-        <HeaderContent>
-            <MudTh>
-                <MudTableSortLabel T="FeatureVm" SortBy="x => x.Name">Name</MudTableSortLabel>
-            </MudTh>
-            <MudTh>
-                <MudTableSortLabel T="FeatureVm" SortBy="x => x.Active">Active</MudTableSortLabel>
-            </MudTh>
-            <MudTh>Actions</MudTh>
-        </HeaderContent>
 
-        <RowTemplate>
-            <MudTd DataLabel="Name">@context.Name</MudTd>
-            <MudTd DataLabel="Active">@context.Active</MudTd>
-            <MudTd>
-                <MudIconButton Size="Size.Small" OnClick="@(async () => await EditDialogAsync(context))"
-                    Icon="@Icons.Material.Outlined.Edit" Color="Color.Primary" />
-                <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" Color="Color.Warning"
-                    OnClick="@(async () => await ConfirmAsync(context))" />
-            </MudTd>
-        </RowTemplate>
 
-        <PagerContent>
-            <MudTablePager />
-        </PagerContent>
-    </MudTable>
-</MudCard>
+<MudTable @ref="_table" T="FeatureVm" ServerData="LoadServerData" @bind-SelectedItem="_selectedBrand" Dense="true"
+    Elevation="0" Bordered=true class="mt-3" Hover="true" Breakpoint="Breakpoint.Sm">
+    <HeaderContent>
+        <MudTh>
+            <MudTableSortLabel T="FeatureVm" SortBy="x => x.Name">Name</MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudTableSortLabel T="FeatureVm" SortBy="x => x.Active">Active</MudTableSortLabel>
+        </MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+
+    <RowTemplate>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Active">@context.Active</MudTd>
+        <MudTd>
+            <MudIconButton Size="Size.Small" OnClick="@(async () => await EditDialogAsync(context))"
+                Icon="@Icons.Material.Outlined.Edit" Color="Color.Primary" />
+            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" Color="Color.Warning"
+                OnClick="@(async () => await ConfirmAsync(context))" />
+        </MudTd>
+    </RowTemplate>
+
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+
 
 @code {
     private string _searchText = "";
