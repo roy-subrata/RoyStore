@@ -5,20 +5,24 @@
 @inject IStringLocalizer<Shared> L
 
 <MudPaper Class="pa-4">
-    <MudForm @ref="form" Model="Model" @bind-IsValid="@success">
-        <MudAutocomplete T="EntityRef" Margin="Margin.Dense" Label="From Unit" @bind-Value="Model.FromUnit"
-            RequiredError="To Unit is required" SearchFunc="SearchUnit" ToStringFunc="x => x?.Name" Dense="true"
-            Variant="Variant.Outlined" Style="width:100%;" />
+    <MudForm @ref="form" Model="Model" @bind-IsValid="success">
 
-        <MudAutocomplete T="EntityRef" Margin="Margin.Dense" Label="To Unit" @bind-Value="Model.ToUnit" Required="true"
-            RequiredError="To Unit is required" SearchFunc="SearchUnit" ToStringFunc="x => x?.Name" Dense="true"
-            Variant="Variant.Outlined" Style="width:100%;" />
+        <!-- From Unit -->
+        <MudAutocomplete T="EntityRef" Label="From Unit" @bind-Value="Model.FromUnit" SearchFunc="SearchUnit"
+            RequiredError="From Unit is required" ToStringFunc="x => x?.Name" Required="true" Immediate="true"
+            Dense="true" Variant="Variant.Outlined" Style="width:100%;" />
 
-        <MudNumericField T="double" Margin="Margin.Dense" Variant="Variant.Outlined" Label="Factor"
-            @bind-Value="Model.Factor" Required="true" RequiredError="Factor is required" />
+        <!-- To Unit -->
+        <MudAutocomplete T="EntityRef" Label="To Unit" @bind-Value="Model.ToUnit" SearchFunc="SearchUnit"
+            ToStringFunc="x => x?.Name" RequiredError="To Unit is required" Required="true" Immediate="true"
+            Dense="true" Variant="Variant.Outlined" Style="width:100%;" />
 
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!success)" Class="mt-2 ml-auto"
-            OnClick="Submit">
+        <!-- Factor -->
+        <MudNumericField T="double" Label="Factor" @bind-Value="Model.Factor" Immediate="true" Required="true"
+            RequiredError="Factor is required" Variant="Variant.Outlined" Style="width:100%;" />
+
+        <!-- Save Button -->
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2 ml-auto" OnClick="Submit">
             @L["Save"]
         </MudButton>
     </MudForm>
@@ -27,64 +31,82 @@
 @code {
     [Parameter]
     public UnitConversionModel Model { get; set; } = new UnitConversionModel();
+
     [Parameter]
     public EventCallback<UnitConversionModel> OnSubmitCompleted { get; set; }
 
-    private bool IsEditMode => String.IsNullOrEmpty(Model?.Id) == false;
-    private bool success;
     private MudForm? form;
-    protected override void OnParametersSet()
+    private bool success;
+
+    private bool IsEditMode => !string.IsNullOrEmpty(Model?.Id);
+
+    protected override Task OnInitializedAsync()
     {
         if (IsEditMode && Model != null)
         {
             Model = new UnitConversionModel
             {
                 Id = Model.Id,
-                FromUnitId = Model.FromUnitId,
-                ToUnitId = Model.ToUnitId,
+                FromUnit = Model.FromUnit,
+                FromUnitId = Model.FromUnit?.Id ?? string.Empty,
+                ToUnit = Model.ToUnit,
+                ToUnitId = Model.ToUnit?.Id ?? string.Empty,
                 Factor = Model.Factor
             };
         }
-        else
-        {
-            Model = new UnitConversionModel();
-        }
+
+        return Task.CompletedTask;
     }
 
     private async Task Submit()
     {
-        if (form is null)
-            return;
-        if (form.IsValid)
+        if (form is null) return;
+
+        await form.Validate();
+        if (!form.IsValid) return;
+
+        if (IsEditMode)
         {
-            if (IsEditMode)
-            {
-                await UnitConversionService.UpdateAsync(Model.Id, new UpdateUnitConversionDto(Model.Id, Model.FromUnit.Id,
-                Model.ToUnit.Id, Model.Factor));
-                await OnSubmitCompleted.InvokeAsync(Model);
-            }
-            else
-            {
-                UnitConversionDto respone = await UnitConversionService.CreateAsync(new CreateUnitConversionDto(Model.FromUnit.Id,
-                Model.ToUnit.Id, Model.Factor));
-                Model.Id = respone.Id;
-                await OnSubmitCompleted.InvokeAsync(Model);
-            }
-            Navigation.NavigateTo("/unitconversion");
+            await UnitConversionService.UpdateAsync(
+            Model.Id,
+            new UpdateUnitConversionDto(
+            Model.Id,
+            Model.FromUnit?.Id ?? string.Empty,
+            Model.ToUnit?.Id ?? string.Empty,
+            Model.Factor
+            )
+            );
         }
+        else
+        {
+            var response = await UnitConversionService.CreateAsync(
+            new CreateUnitConversionDto(
+            Model.FromUnit?.Id ?? string.Empty,
+            Model.ToUnit?.Id ?? string.Empty,
+            Model.Factor
+            )
+            );
+            Model.Id = response.Id;
+        }
+
+        await OnSubmitCompleted.InvokeAsync(Model);
+
+        Navigation.NavigateTo("/unitconversion");
     }
+
     private async Task<IEnumerable<EntityRef>> SearchUnit(string value, CancellationToken cancellationToken)
     {
-        var result = await UnitService.GetAsync(search: value ?? string.Empty);
+        Pages<UnitDto>? result = await UnitService.GetAsync(search: value ?? string.Empty);
         return result.Data.Select(x => new EntityRef(x.Id, x.Name));
     }
+
     public class UnitConversionModel
     {
         public string Id { get; set; } = string.Empty;
         public string FromUnitId { get; set; } = string.Empty;
-        public EntityRef FromUnit { get; set; }
+        public EntityRef? FromUnit { get; set; }
         public string ToUnitId { get; set; } = string.Empty;
-        public EntityRef ToUnit { get; set; }
+        public EntityRef? ToUnit { get; set; }
         public double Factor { get; set; }
     }
 }

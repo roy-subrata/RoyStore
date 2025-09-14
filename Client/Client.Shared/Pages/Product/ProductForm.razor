@@ -107,10 +107,10 @@
     private bool IsEditMode => !string.IsNullOrEmpty(Product.Id);
     private List<EntityRef> FlattenCategories(List<CategoryDto> categories, string indent = "")
     {
-        var list = new List<EntityRef>();
-        foreach (var c in categories)
+        List<EntityRef>? list = new List<EntityRef>();
+        foreach (CategoryDto c in categories)
         {
-            list.Add(new EntityRef(c.Id, $"{indent}{c.Name}"));
+            list.Add(new EntityRef(c.Id, Name: $"{indent}{c.Name}"));
             if (c.Children?.Any() == true)
                 list.AddRange(FlattenCategories(c.Children, indent + "--"));
         }
@@ -121,7 +121,7 @@
         if (!string.IsNullOrEmpty(Id))
         {
             // Fetch the product by ID from a service or API
-            var product = await ProductService.GetByIdAsync(Id);
+            GetProductDto? product = await ProductService.GetByIdAsync(Id);
             Product = new ProductFormModel()
             {
                 Id = product.Id,
@@ -165,7 +165,7 @@
 
         try
         {
-            var features = Product.Features.Select(x => new CreateFeatureDto(x.Feature.Id, x.Value)).ToList();
+            List<CreateFeatureDto>? features = Product.Features.Select(x => new CreateFeatureDto(x.Feature.Id, x.Value)).ToList();
             if (IsEditMode)
             {
                 await ProductService.UpdateAsync(Product.Id, new UpdateProductDto(
@@ -182,7 +182,7 @@
 
             else
             {
-                var response = await ProductService.CreateAsync(new CreateProductDto(
+                GetProductDto? response = await ProductService.CreateAsync(new CreateProductDto(
                 Product.Name,
                 Product.LocalName,
                 Product.PartNo,
@@ -203,19 +203,19 @@
     }
     private async Task<IEnumerable<EntityRef>> SearchBrands(string value, CancellationToken cancellationToken)
     {
-        var result = await BrandService.GetAsync(search: value ?? string.Empty);
+        Pages<BrandDto>? result = await BrandService.GetAsync(search: value ?? string.Empty);
         return result.Data.Select(x => new EntityRef(x.Id, x.Name));
     }
 
     private async Task<IEnumerable<EntityRef>> SearchCategories(string value, CancellationToken cancellationToken)
     {
-        var result = await CategoryService.GetAsync(search: value ?? string.Empty);
+        Pages<CategoryDto>? result = await CategoryService.GetAsync(search: value ?? string.Empty);
         return FlattenCategories(result.Data);
     }
 
     private async Task<IEnumerable<EntityRef>> SearchFeatures(string value, CancellationToken cancellationToken)
     {
-        var result = await FeatureService.GetAsync(search: value ?? string.Empty);
+        Pages<FeatureDto>? result = await FeatureService.GetAsync(search: value ?? string.Empty);
         return result.Data.Select(x => new EntityRef(x.Id, x.Name));
     }
 
