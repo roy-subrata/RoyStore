@@ -8,167 +8,137 @@
 @inject NavigationManager Navigation
 
 <MudForm @ref="form" Model="Purchase">
-    <MudGrid Class="=p-2 ">
-        <MudItem xs="12" sm="6" md="5">
-            <MudItem xs="12" sm="6">Po No : @Purchase.PurchaseNo</MudItem>
-            <MudItem xs="12" sm="6">
-
-                @* <MudDatePicker Label="MM/dd/yyyy" Margin="Margin.Dense" Editable="true"
-                    @bind-Date="Purchase.PurchaseDate" DateFormat="MM/dd/yyyy" Placeholder="en-US Date"
-                    Variant="Variant.Outlined" /> *@
-
+    <MudGrid Spacing="5">
+        <MudItem xs="12" md="4">
+            <MudItem>
+                Po No : @Purchase.PurchaseNo
             </MudItem>
-            <MudItem xs="12" sm="6">Status:@Purchase.Status</MudItem>
-
-            <MudAutocomplete T="Item" Label="@L["Search"]" @bind-Value="SelectedItem" SearchFunc="SearchItems"
-                             ToStringFunc="x => x?.Name" Margin="Margin.Dense" Dense="true" Variant="Variant.Outlined"
-                             Style="width:100%;"/>
+            <MudDatePicker Label="MM/dd/yyyy" Margin="Margin.Dense" Editable="true" @bind-Date="Purchase.PurchaseDate"
+                DateFormat="MM/dd/yyyy" Placeholder="en-US Date" Variant="Variant.Outlined" />
         </MudItem>
-        <MudItem xs="12" sm="6" md="7">
-            <div class="flex flex-col">
-                <MudAutocomplete T="SupplierDto" Margin="Margin.Dense" Label="Vendor" @bind-Value="SelectedSupplier"
-                                 SearchFunc="SearchSuppliers" ToStringFunc="x => x?.Name" Dense="true"
-                                 Variant="Variant.Outlined"
-                                 Style="width:100%;"/>
-                <div class="flex flex-col">
-                    <label>Email:@SelectedSupplier?.Email</label>
-                    <label>Phone:@SelectedSupplier?.Phone</label>
-                    <label>Address:@SelectedSupplier?.Address</label>
-                </div>
-            </div>
-            <div>
-                <MudTable Items="@Purchase.Items" CustomFooter=true Hover="true" Dense="true" Bordered="false"
-                          Elevation="0"
-                          Class="mt-2">
-                    <HeaderContent>
-                        <MudTh>#</MudTh>
-                        <MudTh>Item</MudTh>
-                        <MudTh>Qty</MudTh>
-                        <MudTh>Price</MudTh>
-                        <MudTh>Total</MudTh>
-                        <MudTh></MudTh>
-                    </HeaderContent>
 
-                    <RowTemplate>
-                        <MudTd>@(@Purchase.Items.IndexOf(context) + 1)</MudTd>
+        <MudItem xs="12" md="4">
+            <MudItem>
+                Po No : @Purchase.PurchaseNo
+            </MudItem>
+            <MudAutocomplete T="SupplierDto" Margin="Margin.Dense" Label="Vendor" @bind-Value="SelectedSupplier"
+                SearchFunc="SearchSuppliers" ToStringFunc="x => x?.Name" Dense="true" Variant="Variant.Outlined"
+                Style="width:100%;" />
+        </MudItem>
 
-                        <MudTd>
-                            <div>
-                                <div style="font-weight:bold;">@context.Name</div>
-                                <div style="font-size:0.85rem; color:gray;">
-                                    Part No: @context.PartNo | Local Name: @context.LocalName |
-                                    Brand: @context.BrandName
-                                </div>
-                            </div>
-                        </MudTd>
+        <MudItem xs="12" md="4">
+            <MudItem>
+                Po No : @Purchase.PurchaseNo
+            </MudItem>
+            <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Lines="2" Label="Ship To">
+            </MudTextField>
+        </MudItem>
+    </MudGrid>
 
-                        <MudTd>
-                            <MudNumericField @bind-Value="context.Quantity" Margin="Margin.Dense"
-                                             Variant="Variant.Outlined"
-                                             Dense="true" Min="1"/>
-                        </MudTd>
 
-                        <MudTd>
-                            <MudNumericField @bind-Value="context.Price" Margin="Margin.Dense"
-                                             Variant="Variant.Outlined"
-                                             Dense="true" Min="0"/>
-                        </MudTd>
+    <MudGrid>
+        <MudItem xs="12" sm="6" md="9">
+            <MudAutocomplete T="Item" Label="@L["Search"]" @bind-Value="SelectedItem" SearchFunc="SearchItems"
+                ToStringFunc="x => x?.Name" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Class="w-50">
+                <ItemTemplate>
+                    <div style="display: flex; flex-direction: column;">
+                        <!-- Header / main text -->
+                        <span style="font-weight: 600; font-size: 1rem;">@context.Name</span>
 
-                        <MudTd>@(context.Quantity * context.Price)</MudTd>
+                        <!-- Subtext / smaller, muted -->
+                        <span style="font-size: 0.85rem; color: gray;">
+                            @context.LocalName | Qty: @context.Quantity
+                        </span>
+                    </div>
+                </ItemTemplate>
 
-                        <MudTd>
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                           OnClick="() => RemoveItem(context)"/>
-                        </MudTd>
-                    </RowTemplate>
-                </MudTable>
-            </div>
+            </MudAutocomplete>
+
+            <MudTable Items="@Purchase.Items" CustomFooter=true Hover="true" Dense="true" Bordered="false"
+                Elevation="0">
+
+                <RowTemplate>
+                    <MudTd>
+                        <div style="display: flex; flex-direction: column;">
+                            <!-- Header / main text -->
+                            <span style="font-weight: 600; font-size: 1rem;">@(@Purchase.Items.IndexOf(context) + 1).
+                                @context.Name | @context.PartNo</span>
+
+                            <!-- Subtext / smaller, muted -->
+                            <span style="font-size: 0.85rem; color: gray;">
+                                @context.LocalName | Qty: @context.Quantity | Br: @context.BrandName
+                            </span>
+                        </div>
+                    </MudTd>
+
+                    <MudTd>
+                        <MudNumericField @bind-Value="context.Quantity" Margin="Margin.Dense" Variant="Variant.Outlined"
+                            Dense="true" Min="1" />
+                    </MudTd>
+
+                    <MudTd>
+                        <MudNumericField @bind-Value="context.Price" Margin="Margin.Dense" Variant="Variant.Outlined"
+                            Dense="true" Min="0" />
+                    </MudTd>
+
+                    <MudTd>
+
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                            <span>@(context.Quantity* context.Price)</span>
+                            <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Error" Size="Size.Small"
+                                OnClick="() => RemoveItem(context)" />
+                        </div>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudNumericField Margin="Margin.Dense" HideSpinButtons=true Variant="Variant.Outlined"
+                Label="Advacnd Amount" Disabled=true @bind-Value="Purchase.AdvacedAmount" />
+
+            <MudNumericField Margin="Margin.Dense" Variant="Variant.Outlined" Label="Deliver Charge"
+                @bind-Value="Purchase.DeliveryCharge" Min="1" HideSpinButtons=true />
+
+            <MudNumericField Margin="Margin.Dense" Variant="Variant.Outlined" Label="Discount"
+                @bind-Value="Purchase.DiscountAmount" Min="1" HideSpinButtons=true />
+
+            <MudGrid>
+                <MudItem xs="12" sm="6" md="6">
+                    <MudNumericField Margin="Margin.Dense" Variant="Variant.Outlined" Label="Tax(%)"
+                        @bind-Value="Purchase.Tax" Min="1" HideSpinButtons=true />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="6">
+                    <MudNumericField Margin="Margin.Dense" Variant="Variant.Outlined" Label="Vat(%)"
+                        @bind-Value="Purchase.Vat" Min="1" HideSpinButtons=true />
+                </MudItem>
+            </MudGrid>
+
+            <MudSelect T="int" Label="Payment Type" @bind-Value="Purchase.PaymentType" Variant="Variant.Outlined"
+                Margin="Margin.Dense">
+                <MudSelectItem Value="1">Cash</MudSelectItem>
+                <MudSelectItem Value="2">Bank</MudSelectItem>
+                <MudSelectItem Value="3">Bikash</MudSelectItem>
+                <MudSelectItem Value="4">Nagad</MudSelectItem>
+            </MudSelect>
+
+            @if (Purchase.PaymentType == 2 || Purchase.PaymentType == 3 || Purchase.PaymentType == 4)
+            {
+                <MudTextField T="string" Label="Ref Note" Lines="2" Variant="Variant.Outlined" Margin="Margin.Dense"
+                    @bind-Value="Purchase.RefNote" />
+            }
+
+            <MudNumericField Margin="Margin.Dense" HideSpinButtons=true Variant="Variant.Outlined" Label="Payment"
+                @bind-Value="Purchase.PaidAmount" Min="1" />
+
+        </MudItem>
+    </MudGrid>
+    <MudGrid>
+        <MudItem xs="12" sm="6" md="8">
 
 
         </MudItem>
     </MudGrid>
 
-    <MudTable Items="@Purchase.Items" CustomFooter=true Hover="true" Dense="true" Bordered="false" Elevation="0"
-              Class="mt-2">
-        <HeaderContent>
-            <MudTh>#</MudTh>
-            <MudTh>Item</MudTh>
-            <MudTh>Qty</MudTh>
-            <MudTh>Price</MudTh>
-            <MudTh>Total</MudTh>
-            <MudTh></MudTh>
-        </HeaderContent>
-
-        <RowTemplate>
-            <MudTd>@(@Purchase.Items.IndexOf(context) + 1)</MudTd>
-
-            <MudTd>
-                <div>
-                    <div style="font-weight:bold;">@context.Name</div>
-                    <div style="font-size:0.85rem; color:gray;">
-                        Part No: @context.PartNo | Local Name: @context.LocalName | Brand: @context.BrandName
-                    </div>
-                </div>
-            </MudTd>
-
-            <MudTd>
-                <MudNumericField @bind-Value="context.Quantity" Margin="Margin.Dense" Variant="Variant.Outlined"
-                                 Dense="true" Min="1"/>
-            </MudTd>
-
-            <MudTd>
-                <MudNumericField @bind-Value="context.Price" Margin="Margin.Dense" Variant="Variant.Outlined"
-                                 Dense="true" Min="0"/>
-            </MudTd>
-
-            <MudTd>@(context.Quantity * context.Price)</MudTd>
-
-            <MudTd>
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                               OnClick="() => RemoveItem(context)"/>
-            </MudTd>
-        </RowTemplate>
-
-        <FooterContent>
-            <MudTFootRow>
-                <MudTd ColSpan="3"></MudTd>
-                <MudTd>Subtotal</MudTd>
-                <MudTd>@Purchase.Subtotal</MudTd>
-                <MudTd></MudTd>
-            </MudTFootRow>
-
-            <MudTFootRow>
-                <MudTd ColSpan="3"></MudTd>
-                <MudTd>Discount</MudTd>
-                <MudTd>
-                    <MudNumericField @bind-Value="Purchase.DiscountAmount" Margin="Margin.Dense"
-                                     Variant="Variant.Outlined" Dense="true" Min="1"/>
-                </MudTd>
-                <MudTd></MudTd>
-            </MudTFootRow>
-            <MudTFootRow>
-                <MudTd ColSpan="3"></MudTd>
-                <MudTd>Total</MudTd>
-                <MudTd>@Purchase.TotalAmount</MudTd>
-                <MudTd></MudTd>
-            </MudTFootRow>
-            <MudTFootRow>
-                <MudTd ColSpan="3"></MudTd>
-                <MudTd>Payment</MudTd>
-                <MudTd>
-                    <MudNumericField @bind-Value="Purchase.PaidAmount" Margin="Margin.Dense" Variant="Variant.Outlined"
-                                     Dense="true" Min="1"/>
-                </MudTd>
-                <MudTd></MudTd>
-            </MudTFootRow>
-            <MudTFootRow>
-                <MudTd ColSpan="3"></MudTd>
-                <MudTd>Due</MudTd>
-                <MudTd>@Purchase.DueAmount</MudTd>
-                <MudTd></MudTd>
-            </MudTFootRow>
-        </FooterContent>
-    </MudTable>
 
     <div class="flex flex-row justify-end space-x-2">
         <MudButton Color="Color.Primary" OnClick="Submit">Save As Draft</MudButton>
@@ -225,8 +195,8 @@
                     DeliveryCharge = purchase.DeliveryCharge,
                     DueAmount = purchase.DueAmount,
                     PaidAmount = purchase.PaidAmount,
-                    TaxAmount = purchase.TaxAmount,
-                    VatAmount = purchase.VatAmount,
+                    Tax = purchase.Tax,
+                    Vat = purchase.Vat,
                     DiscountAmount = purchase.DiscountAmount,
                     Items = purchase.Items.Select(x =>
                     {
@@ -258,33 +228,33 @@
             if (IsEditMode)
             {
                 await PurchaseService.UpdateAsync(Purchase.Id, new CreatePurchaseDto(
-                    Purchase.PurchaseNo,
-                    SelectedSupplier.Id,
-                    Purchase.PurchaseDate,
-                    Purchase.DeliveryCharge,
-                    Purchase.VatAmount,
-                    Purchase.TaxAmount,
-                    Purchase.DiscountAmount,
-                    Purchase.PaidAmount,
-                    Status.Draft,
-                    Purchase.Items.Select(x => new CreatePurchaseItemDto(x.Id, x.Quantity, x.Price))
-                        .ToList()));
+                Purchase.PurchaseNo,
+                SelectedSupplier.Id,
+                Purchase.PurchaseDate.Value,
+                Purchase.DeliveryCharge,
+                Purchase.Vat,
+                Purchase.Tax,
+                Purchase.DiscountAmount,
+                Purchase.PaidAmount,
+                Status.Draft,
+                Purchase.Items.Select(x => new CreatePurchaseItemDto(x.Id, x.Quantity, x.Price))
+                .ToList()));
             }
 
             else
             {
                 await PurchaseService.CreateAsync(new CreatePurchaseDto(
-                    Purchase.PurchaseNo,
-                    SelectedSupplier.Id,
-                    Purchase.PurchaseDate,
-                    Purchase.DeliveryCharge,
-                    Purchase.VatAmount,
-                    Purchase.TaxAmount,
-                    Purchase.DiscountAmount,
-                    Purchase.PaidAmount,
-                    Status.Draft,
-                    Purchase.Items.Select(x => new CreatePurchaseItemDto(x.Id, x.Quantity, x.Price))
-                        .ToList())
+                Purchase.PurchaseNo,
+                SelectedSupplier.Id,
+                Purchase.PurchaseDate.Value,
+                Purchase.DeliveryCharge,
+                Purchase.Vat,
+                Purchase.Tax,
+                Purchase.DiscountAmount,
+                Purchase.PaidAmount,
+                Status.Draft,
+                Purchase.Items.Select(x => new CreatePurchaseItemDto(x.Id, x.Quantity, x.Price))
+                .ToList())
                 );
             }
 
@@ -365,9 +335,9 @@
             set => _purchaseNo = value;
         }
 
-        private DateTime _purchaseDate = DateTime.Now;
+        private DateTime? _purchaseDate = DateTime.Now;
 
-        public DateTime PurchaseDate
+        public DateTime? PurchaseDate
         {
             get => _purchaseDate;
             set => _purchaseDate = value;
@@ -376,7 +346,7 @@
         public string Status { get; set; }
         public double PaidAmount { get; set; }
 
-        public double PaymentDue => (Subtotal + DeliveryCharge + TaxAmount + VatAmount) - DiscountAmount;
+        public double PaymentDue => (Subtotal + DeliveryCharge + Tax + Vat) - DiscountAmount;
 
         public double Subtotal => Items.Sum(x => x.Quantity * x.Price);
         public double TotalAmount { get; set; }
@@ -388,10 +358,14 @@
             set => _dueAmount = TotalAmount - PaidAmount;
         }
 
-        public double TaxAmount { get; set; }
-        public double VatAmount { get; set; }
+        public int PaymentType { get; set; } = 0;
+        public string RefNote { get; set; } = string.Empty;
+
+        public double Tax { get; set; }
+        public double Vat { get; set; }
         public double DiscountAmount { get; set; }
         public double DeliveryCharge { get; set; }
+        public double AdvacedAmount { get; set; }
         public List<Item> Items { get; set; } = new List<Item>();
     }
 

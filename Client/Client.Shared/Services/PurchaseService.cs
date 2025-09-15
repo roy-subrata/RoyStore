@@ -76,8 +76,8 @@ public record CreatePurchaseDto(
     string SupplierId,
     DateTime PurchaseDate,
     double DeliveryCharge,
-    double VatAmount,
-    double TaxAmount,
+    double Vat,
+    double Tax,
     double DiscountAmount,
     double PaidAmount,
     Status Status,
@@ -102,8 +102,8 @@ public record GetPurchaseDto(
     double PaidAmount,
     double DueAmount,
     double DeliveryCharge,
-    double VatAmount,
-    double TaxAmount,
+    double Vat,
+    double Tax,
     double DiscountAmount,
     List<GetPurchaseItemDto> Items
     );

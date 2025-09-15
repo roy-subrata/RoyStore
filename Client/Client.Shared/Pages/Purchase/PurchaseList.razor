@@ -11,77 +11,75 @@
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
 
-<MudCard Class="p-4 shadow-lg">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-        <!-- Search -->
-        <MudTextField @bind-Value="_searchText" Placeholder="Search purchases..." Variant="Variant.Text"
-            Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-            DebounceInterval="500" OnDebounceIntervalElapsed="OnSearchChanged" Class="w-50" />
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+    <!-- Search -->
+    <MudTextField @bind-Value="_searchText" Placeholder="Search purchases..." Variant="Variant.Outlined"
+        Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+        DebounceInterval="500" OnDebounceIntervalElapsed="OnSearchChanged" Class="w-50" />
 
-        <!-- Actions -->
-        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Start" Class="w-50" Justify="Justify.FlexEnd">
-            <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Print"
-                OnClick="Print">
-                Print
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                OnClick="addNew">
-                Add New
-            </MudButton>
-        </MudStack>
+    <!-- Actions -->
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Start" Class="w-50" Justify="Justify.FlexEnd">
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Print"
+            OnClick="Print">
+            Print
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+            OnClick="addNew">
+            Add New
+        </MudButton>
     </MudStack>
-</MudCard>
+</MudStack>
 
-<MudCard Class="p-4 mt-4 shadow-lg">
-    <MudTable @ref="_table" T="PurchaseVM" ServerData="LoadServerData" Dense="true" Hover="true"
-        Breakpoint="Breakpoint.Sm">
-        <HeaderContent>
 
-            <MudTh>
-                <MudTableSortLabel T="PurchaseVM">Purchase No</MudTableSortLabel>
-            </MudTh>
-            <MudTh>
-                <MudTableSortLabel T="PurchaseVM">Purchase Date</MudTableSortLabel>
-            </MudTh>
-            <MudTh>
-                <MudTableSortLabel T="PurchaseVM">Status</MudTableSortLabel>
-            </MudTh>
-            <MudTh>
-                <MudTableSortLabel T="PurchaseVM">Supplier</MudTableSortLabel>
-            </MudTh>
-            <MudTh>
-                <MudTableSortLabel T="PurchaseVM">Total</MudTableSortLabel>
-            </MudTh>
-            <MudTh>
-                <MudTableSortLabel T="PurchaseVM">Payment</MudTableSortLabel>
-            </MudTh>
-            <MudTh>
-                <MudTableSortLabel T="PurchaseVM">Due</MudTableSortLabel>
-            </MudTh>
-            <MudTh>Actions</MudTh>
-        </HeaderContent>
+<MudTable class="mt-3" Elevation="0" @ref="_table" T="PurchaseVM" ServerData="LoadServerData" Dense="true" Hover="true"
+    Breakpoint="Breakpoint.Sm">
+    <HeaderContent>
 
-        <RowTemplate>
-            <MudTd DataLabel="PurchaseNo">@context.PurchaseNo</MudTd>
-            <MudTd DataLabel="Name">@context.PurchaseDate</MudTd>
-            <MudTd DataLabel="Name">@context.Status</MudTd>
-            <MudTd DataLabel="Name">@context.Suppiler.Name</MudTd>
-            <MudTd DataLabel="Category">@context.Total</MudTd>
-            <MudTd DataLabel="Brand">@context.Payment</MudTd>
-            <MudTd DataLabel="Brand">@context.DueAmount</MudTd>
-            <MudTd>
-                <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Edit" Color="Color.Primary"
-                    OnClick="@(() => Editpurchase(@context.Id))" />
-                <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" Color="Color.Warning"
-                    OnClick="@(async () => await ConfirmAsync(context))" />
-            </MudTd>
-        </RowTemplate>
+        <MudTh>
+            <MudTableSortLabel T="PurchaseVM">Purchase No</MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudTableSortLabel T="PurchaseVM">Purchase Date</MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudTableSortLabel T="PurchaseVM">Status</MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudTableSortLabel T="PurchaseVM">Supplier</MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudTableSortLabel T="PurchaseVM">Total</MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudTableSortLabel T="PurchaseVM">Payment</MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudTableSortLabel T="PurchaseVM">Due</MudTableSortLabel>
+        </MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
 
-        <PagerContent>
-            <MudTablePager />
-        </PagerContent>
-    </MudTable>
-</MudCard>
+    <RowTemplate>
+        <MudTd DataLabel="PurchaseNo">@context.PurchaseNo</MudTd>
+        <MudTd DataLabel="Name">@context.PurchaseDate</MudTd>
+        <MudTd DataLabel="Name">@context.Status</MudTd>
+        <MudTd DataLabel="Name">@context.Suppiler.Name</MudTd>
+        <MudTd DataLabel="Category">@context.Total</MudTd>
+        <MudTd DataLabel="Brand">@context.Payment</MudTd>
+        <MudTd DataLabel="Brand">@context.DueAmount</MudTd>
+        <MudTd>
+            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Edit" Color="Color.Primary"
+                OnClick="@(() => Editpurchase(@context.Id))" />
+            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" Color="Color.Warning"
+                OnClick="@(async () => await ConfirmAsync(context))" />
+        </MudTd>
+    </RowTemplate>
+
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+
 
 
 @code {
