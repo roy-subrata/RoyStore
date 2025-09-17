@@ -5,6 +5,8 @@
 @inject SupplierService SupplierService
 @inject PurchaseService PurchaseService
 @inject ProductService ProductService
+
+@inject PaymentMethodService PaymentMethodService;
 @inject NavigationManager Navigation
 
 <MudForm @ref="form" Model="Purchase">
@@ -113,13 +115,10 @@
                 </MudItem>
             </MudGrid>
 
-            @* <MudSelect T="string" Label="Payment Type" @bind-Value="Purchase.PaymentType" Variant="Variant.Outlined"
-                Margin="Margin.Dense">
-                <MudSelectItem Value="1">Cash</MudSelectItem>
-                <MudSelectItem Value="2">Bank</MudSelectItem>
-                <MudSelectItem Value="3">Bikash</MudSelectItem>
-                <MudSelectItem Value="4">Nagad</MudSelectItem>
-            </MudSelect> *@
+          
+            <MudAutocomplete T="PaymentMethodDto" Margin="Margin.Dense" Label="Vendor" @bind-Value="_selectedMethod"
+                SearchFunc="SearchPaymentMethod" ToStringFunc="x => x?.ProviderName" Dense="true" Variant="Variant.Outlined"
+                Style="width:100%;" />
 
             <MudTextField T="string" Label="Ref Note" Lines="2" Variant="Variant.Outlined" Margin="Margin.Dense"
                     @bind-Value="Purchase.RefNote" />
@@ -149,6 +148,8 @@
     [Parameter] public string Id { get; set; } = string.Empty;
     private Item _selectedItem;
     private SupplierDto SelectedSupplier;
+
+    private PaymentMethodDto _selectedMethod;
     private bool Success;
     private bool IsEditMode => !string.IsNullOrEmpty(Purchase.Id);
 
@@ -238,7 +239,7 @@
                 Purchase.Items.Select(x => new CreatePurchaseItemDto(x.Id, "30a5fb2b-0907-4ace-9623-10c8fcbc8289",x.Quantity, x.Price))
                 .ToList(),
                 new CreatePurchasePaymentDto(
-                    PaymentMethodId: "fcf6a35c-4d88-4863-bc55-09bbeca9e59d",
+                    PaymentMethodId: _selectedMethod.Id,
                     Purchase.PaidAmount,
                     Purchase.RefNote)
                 ));
@@ -260,7 +261,7 @@
                 Purchase.Items.Select(x => new CreatePurchaseItemDto(x.Id, "30a5fb2b-0907-4ace-9623-10c8fcbc8289", x.Quantity, x.Price))
                 .ToList(),
                 new CreatePurchasePaymentDto(
-                    "fcf6a35c-4d88-4863-bc55-09bbeca9e59d",
+                    _selectedMethod.Id,
                     Purchase.PaidAmount,
                     Purchase.RefNote)
                 ));
@@ -324,6 +325,11 @@
             BrandName = x.Brand.Name,
             LocalName = x.LocalName
         });
+    }
+private async Task<IEnumerable<PaymentMethodDto>> SearchPaymentMethod(string value, CancellationToken cancellationToken)
+    {
+        Pages<PaymentMethodDto>? result = await PaymentMethodService.GetAsync(search: value ?? string.Empty);
+        return result.Data;
     }
 
     private void Cancel()

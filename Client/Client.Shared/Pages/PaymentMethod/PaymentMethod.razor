@@ -1,4 +1,4 @@
-@page "/Payment-methods"
+@page "/paymentmethod"
 @using Client.Shared.Pages.Shared
 @using Client.Shared.Services
 @inherits LayoutComponentBase
@@ -33,7 +33,13 @@
     Elevation="0" Bordered=true class="mt-3" Hover="true" Breakpoint="Breakpoint.Sm">
     <HeaderContent>
         <MudTh>
-            <MudTableSortLabel T="PaymentVm" SortBy="x => x.Name">Name</MudTableSortLabel>
+            <MudTableSortLabel T="PaymentVm" SortBy="x => x.ProvideName">Name</MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudTableSortLabel T="PaymentVm" SortBy="x => x.AccountNo">Account No</MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudTableSortLabel T="PaymentVm" SortBy="x => x.AccountOwner">Account Owner</MudTableSortLabel>
         </MudTh>
         <MudTh>
             <MudTableSortLabel T="PaymentVm" SortBy="x => x.Active">Active</MudTableSortLabel>
@@ -42,7 +48,9 @@
     </HeaderContent>
 
     <RowTemplate>
-        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Name">@context.ProvideName</MudTd>
+        <MudTd DataLabel="Name">@context.AccountOwner</MudTd>
+        <MudTd DataLabel="Name">@context.AccountNo</MudTd>
         <MudTd DataLabel="Active">@context.Active</MudTd>
         <MudTd>
             <MudIconButton Size="Size.Small" OnClick="@(async () => await EditDialogAsync(context))"
@@ -73,7 +81,9 @@
         var items = result.Data.Select(c => new PaymentVm
         {
             Id = c.Id,
-            Name = c.Name,
+            ProvideName = c.ProviderName,
+            AccountNo = c.AccountNo,
+            AccountOwner = c.AccountOwner,
             IsActive = c.IsActive
         }).ToList();
 
@@ -148,13 +158,15 @@
         }
     }
 
-    private async Task EditDialogAsync(PaymentVm feature)
+    private async Task EditDialogAsync(PaymentVm payment)
     {
         var model = new PaymentMethodModel
         {
-            Id = feature.Id,
-            Name = feature.Name,
-            IsActive = feature.IsActive
+            Id = payment.Id,
+            ProvideName = payment.ProvideName,
+            AccountOwner = payment.AccountOwner,
+            AccountNo = payment.AccountNo,
+            IsActive = payment.IsActive
         };
 
         var dialog = await DialogService.ShowAsync<PaymentMethodForm>("Edit Feature",
@@ -176,8 +188,9 @@
     private class PaymentVm
     {
         public string Id { get; set; } = "";
-        public string Name { get; set; } = "";
-
+        public string ProvideName { get; set; } = "";
+        public string AccountNo { get; set; } = "";
+        public string AccountOwner { get; set; } = "";
         public string Active
         {
             get => IsActive ? "Yes" : "No";

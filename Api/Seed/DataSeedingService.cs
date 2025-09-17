@@ -48,7 +48,9 @@ public class DataSeedingService(IServiceScopeFactory scopeFactory)
             await context.PaymentMethods.AddAsync(new PaymentMethod()
             {
                 Id = _paymentMethodId,
-                Name = "Bikash",
+                ProviderName = "Bikash",
+                AccountNo = "8801716625369",
+                AccountOwner = "Subrata Roy",
                 IsActive = true
             });
         }

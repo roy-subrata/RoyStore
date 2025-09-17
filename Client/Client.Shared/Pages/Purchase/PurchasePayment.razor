@@ -5,7 +5,7 @@
 @using Client.Shared.Services
 
 @using static Client.Shared.Pages.Brand.BrandForm
-
+@inject PaymentMethodService PaymentMethodService;
 @inject IDialogService DialogService
 @inject BrandService BrandService
 @inject ISnackbar Snackbar
@@ -38,8 +38,21 @@
                 <MudNumericField T="double" Label="Payment" Margin="Margin.Dense" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem md="6">
-                <MudSelect Label="Type" T="string" Margin="Margin.Dense" Variant="Variant.Outlined">
-                </MudSelect>
+                <MudAutocomplete T="PaymentMethodDto" Margin="Margin.Dense" Label="Type" @bind-Value="_selectedMethod"
+                    SearchFunc="SearchPaymentMethod" ToStringFunc="x => x?.ProviderName" Dense="true"
+                    Variant="Variant.Outlined" Style="width:100%;">
+                    <ItemTemplate>
+                        <div style="display: flex; flex-direction: column;">
+                            <!-- Header / main text -->
+                            <span style="font-weight: 600; font-size: 1rem;">@context.ProviderName</span>
+
+                            <!-- Subtext / smaller, muted -->
+                            <span style="font-size: 0.85rem; color: gray;">
+                                @context.AccountNo
+                            </span>
+                        </div>
+                    </ItemTemplate>
+                </MudAutocomplete>
             </MudItem>
         </MudGrid>
         <MudTextField Lines="2" T="string" Label="Note" Margin="Margin.Dense" Variant="Variant.Outlined">
@@ -97,6 +110,7 @@
 @code {
     private string _searchText = "";
     private BrandVm? _selectedBrand;
+    private PaymentMethodDto _selectedMethod;
 
     // Main server-side data loader
     private async Task<TableData<BrandVm>> LoadServerData(TableState state, CancellationToken cancellationToken)
@@ -119,6 +133,12 @@
             TotalItems = result.Total
         };
     }
+    private async Task<IEnumerable<PaymentMethodDto>> SearchPaymentMethod(string value, CancellationToken cancellationToken)
+    {
+        Pages<PaymentMethodDto>? result = await PaymentMethodService.GetAsync(search: value ?? string.Empty);
+        return result.Data;
+    }
+
 
     private void OnSearchChanged(string text)
     {

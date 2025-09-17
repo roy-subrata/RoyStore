@@ -5,8 +5,12 @@
 
 <MudPaper Class="pa-4">
     <MudForm @ref="_form" Model="Model" @bind-IsValid="@_success">
-        <MudTextField T="string" Label="Name" @bind-Value="Model.Name" Required="true"
-            RequiredError="Name is required!" />
+        <MudTextField T="string" Label="Provider" @bind-Value="Model.ProvideName" Required="true"
+            RequiredError="Provide Name is required!" />
+        <MudTextField T="string" Label="Account OWner" @bind-Value="Model.AccountOwner" Required="true"
+            RequiredError="Provide Name is required!" />
+        <MudTextField T="string" Label="Account No" @bind-Value="Model.AccountNo" Required="true"
+            RequiredError="Provide Name is required!" />
 
         <MudCheckBox Label="Active" @bind-Value="Model.IsActive" />
 
@@ -35,7 +39,9 @@
             Model = new PaymentMethodModel
             {
                 Id = Model.Id,
-                Name = Model.Name,
+                ProvideName = Model.ProvideName,
+                AccountNo = Model.AccountNo,
+                AccountOwner = Model.AccountOwner,
                 IsActive = Model.IsActive
             };
         }
@@ -51,13 +57,15 @@
             {
                 if (IsEditMode)
                 {
-                    await PaymentMethodService.UpdateAsync(Model.Id, new UpdatePaymentMethod(Model.Id, Model.Name,
+                    await PaymentMethodService.UpdateAsync(Model.Id, new UpdatePaymentMethod(
+                    Model.ProvideName, Model.AccountNo, Model.AccountOwner,
                     Model.IsActive));
                     await OnSubmitCompleted.InvokeAsync(Model);
                 }
                 else
                 {
-                    var response = await PaymentMethodService.CreateAsync(new CreatePaymentMethod(Model.Name, Model.IsActive));
+                    var response = await PaymentMethodService.CreateAsync(new CreatePaymentMethod(
+                    Model.ProvideName, Model.AccountNo, Model.AccountOwner, Model.IsActive));
                     Model.Id = response.Id;
                     await OnSubmitCompleted.InvokeAsync(Model);
                 }
@@ -73,7 +81,9 @@
     public class PaymentMethodModel
     {
         public string Id { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
+        public string ProvideName { get; set; } = "";
+        public string AccountNo { get; set; } = "";
+        public string AccountOwner { get; set; } = "";
         public bool IsActive { get; set; }
     }
 }

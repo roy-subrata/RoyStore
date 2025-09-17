@@ -61,8 +61,8 @@ public class PaymentMethodService(IHttpClientFactory httpClientFactory)
 
 
 
-public record PaymentMethodDto(string Id, string Name, bool IsActive); // Changed Id to int
+public record PaymentMethodDto(string Id, string ProviderName, string AccountNo, string AccountOwner, bool IsActive); // Changed Id to int
 
-public record CreatePaymentMethod(string Name, bool IsActive);
+public record CreatePaymentMethod(string ProviderName, string AccountNo, string AccountOwner, bool IsActive);
 
-public record UpdatePaymentMethod(string Id, string Name, bool IsActive);
+public record UpdatePaymentMethod(string ProviderName, string AccountNo, string AccountOwner, bool IsActive);

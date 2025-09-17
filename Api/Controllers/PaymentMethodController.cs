@@ -24,18 +24,20 @@ public class PaymentMethodController(
 
         if (!string.IsNullOrEmpty(query.Search))
         {
-            queryable = queryable.Where(q => q.Name.ToLower().Contains(query.Search.ToLower()));
+            queryable = queryable.Where(q => q.ProviderName.ToLower().Contains(query.Search.ToLower()));
         }
 
         var totalCount = await queryable.CountAsync();
 
         var types = await queryable
-            .OrderBy(b => b.Name)
+            .OrderBy(b => b.ProviderName)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .Select(x => new GetPaymentMethodRespone(
                 x.Id,
-                x.Name,
+                x.ProviderName,
+                x.AccountNo,
+                x.AccountOwner,
                 x.IsActive)) // ✅ use PaymentMethod.IsActive, not PaymentType.IsActive
             .ToListAsync();
 
@@ -56,7 +58,7 @@ public class PaymentMethodController(
 
         if (find is null)
             return NotFound();
-        var response = new GetPaymentMethodRespone(find.Id, find.Name, find.IsActive);
+        var response = new GetPaymentMethodRespone(find.Id, find.ProviderName, find.AccountNo, find.AccountOwner, find.IsActive);
         return Ok(response);
     }
     [HttpPost]
@@ -65,7 +67,9 @@ public class PaymentMethodController(
         var method = new PaymentMethod
         {
             Id = Guid.NewGuid().ToString(),
-            Name = request.Name,
+            AccountNo = request.AccountNo,
+            AccountOwner = request.AccountOwner,
+            ProviderName = request.ProviderName,
             IsActive = request.IsActive
         };
 
@@ -76,7 +80,7 @@ public class PaymentMethodController(
         logger.LogInformation("PaymentMethod {Id} created", method.Id);
 
         return CreatedAtAction(nameof(GetById), new { id = method.Id },
-            new GetPaymentMethodRespone(method.Id, method.Name, method.IsActive));
+            new GetPaymentMethodRespone(method.Id, method.ProviderName, method.AccountNo, method.AccountOwner, method.IsActive));
 
     }
 
@@ -92,13 +96,14 @@ public class PaymentMethodController(
         if (method is null)
             return NotFound();
 
-        method.Name = request.Name;
+        method.IsActive = request.IsActive;
+        method.IsActive = request.IsActive;
         method.IsActive = request.IsActive;
         await context.SaveChangesAsync();
 
         logger.LogInformation("PaymentMethod {Id} updated", id);
 
-        return Ok(new GetPaymentMethodRespone(method.Id, method.Name, method.IsActive));
+        return Ok(new GetPaymentMethodRespone(method.Id, method.ProviderName, method.AccountNo, method.AccountOwner, method.IsActive));
     }
 
 
@@ -116,8 +121,8 @@ public class PaymentMethodController(
     }
 }
 
-public record GetPaymentMethodRespone(string Id, string Name, bool IsActive);
+public record GetPaymentMethodRespone(string Id, string ProviderName, string AccountNo, string AccountOwner, bool IsActive);
 
-public record CreatePaymentMethod(string Name, bool IsActive);
+public record CreatePaymentMethod(string ProviderName, string AccountNo, string AccountOwner, bool IsActive);
 
-public record UpdatePaymentMethod(string Name, bool IsActive);
+public record UpdatePaymentMethod(string ProviderName, string AccountNo, string AccountOwner, bool IsActive);
