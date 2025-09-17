@@ -39,7 +39,7 @@ public class ProductsController(ILogger<ProductsController> logger, StoreDbConte
                 p.PartNo,
                 p.PurchaseItems
                     .Where(pi => pi.Purchase.Status == PurchaseStatus.ReadyToStock)
-                    .Sum(pi => (int?)pi.Quantity) ?? 0,
+                    .Sum(pi => (int?)pi.ReceivedQuantity) ?? 0,
                     p.Description,
                 new EntityRef(p.BrandId, p.Brand.Name),
                 new EntityRef(p.CategoryId, p.Category.Name),
@@ -76,7 +76,7 @@ public class ProductsController(ILogger<ProductsController> logger, StoreDbConte
                 p.PartNo,
                 p.PurchaseItems
                     .Where(pi => pi.Purchase.Status == PurchaseStatus.ReadyToStock)
-                    .Sum(pi => (int?)pi.Quantity) ?? 0,
+                    .Sum(pi => (int?)pi.ReceivedQuantity) ?? 0,
                     p.Description,
                 new EntityRef(p.BrandId, p.Brand.Name),
                 new EntityRef(p.CategoryId, p.Category.Name),
@@ -269,7 +269,7 @@ public class ProductsController(ILogger<ProductsController> logger, StoreDbConte
                 product.Name,
                 product.LocalName,
                 product.PartNo,
-                product.PurchaseItems.Sum(x => x.Quantity),
+                product.PurchaseItems.Sum(x => x.ReceivedQuantity),
                 product.Description,
                 new EntityRef(product.BrandId, brand.Name),
                 new EntityRef(product.CategoryId, category.Name),

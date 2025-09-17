@@ -36,6 +36,7 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options)
     public DbSet<Currency> Currencies { get; set; }
     public DbSet<Customer> Customers { get; set; }
 
+    public DbSet<PaymentMethod> PaymentMethods { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

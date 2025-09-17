@@ -43,7 +43,7 @@ public class UnitsController(
     }
 
     [HttpGet("{id}")]
-    async Task<ActionResult> Get(string id)
+ public   async Task<ActionResult> GetById(string id)
     {
         var find = await context.Units.FindAsync(id);
         if (find is null)

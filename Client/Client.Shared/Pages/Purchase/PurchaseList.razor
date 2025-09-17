@@ -68,6 +68,10 @@
         <MudTd DataLabel="Brand">@context.Payment</MudTd>
         <MudTd DataLabel="Brand">@context.DueAmount</MudTd>
         <MudTd>
+            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Payment" Color="Color.Primary"
+                OnClick="@(() => Navigation.NavigateTo("/purchase-payment"))" />
+            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.CallReceived" Color="Color.Primary"
+                OnClick="@(() => Navigation.NavigateTo("/purchase/itemreceive"))" />
             <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Edit" Color="Color.Primary"
                 OnClick="@(() => Editpurchase(@context.Id))" />
             <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" Color="Color.Warning"

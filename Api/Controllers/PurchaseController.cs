@@ -1,6 +1,6 @@
 
-
-
+using Api.Entities;
+using Api.Mapping;
 using Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -30,21 +30,19 @@ public class PurchaseController(
 
         var purchases = await _purchases
             .OrderByDescending(p => p.PurchaseDate)
-            .Include(p => p.Items)
-            .Include(p => p.Supplier)
             .Skip((productQuery.Page - 1) * productQuery.PageSize)
             .Take(productQuery.PageSize)
             .Select(p => new GetPurchaseResponse(
                 p.Id,
                 p.PurchaseNumber,
-                "",
+                p.Status.convertToString(),
                 p.PurchaseDate,
                 new EntityRef(p.Supplier.Id, p.Supplier.Name)
             )).ToListAsync();
 
         var result = new Paging<GetPurchaseResponse>
         {
-            Data = [],
+            Data = purchases,
             Total = totalCount,
             Page = productQuery.Page,
             PageSize = productQuery.PageSize
@@ -52,10 +50,109 @@ public class PurchaseController(
         return Ok(result);
     }
 
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(string id, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Fetching purchase with ID {PurchaseId}", id);
+
+        var response = await dbContext.Purchases
+            .Select(x => new GetPurchaseResponse(
+                x.Id,
+                x.PurchaseNumber,
+                x.Status.convertToString(),
+                x.PurchaseDate,
+                new EntityRef(x.Supplier.Id, x.Supplier.Name)
+             ))
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
+        if (response == null)
+        {
+            logger.LogWarning("Purchase with ID {PurchaseId} not found", id);
+            return NotFound();
+        }
+        return Ok(response);
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreatePurchase([FromBody] CreatePurchaseRequest request, CancellationToken cancellationToken)
     {
         logger.LogInformation("Creating new purchase with request: {@Request}", request);
+
+        var supplier = await dbContext.Suppliers.FindAsync(request.SupplierId);
+        if (supplier == null)
+        {
+            logger.LogWarning("Supplier with ID {SupplierId} not found", request.SupplierId);
+            return BadRequest($"Supplier with ID {request.SupplierId} not found.");
+        }
+
+        var purchase = new Purchase
+        {
+            Id = Guid.NewGuid().ToString(),
+            PurchaseNumber = request.PurchaseNo,
+            SupplierId = request.SupplierId,
+            ShipTo = request.ShipTo,
+            DeliveryCharge = request.DeliveryCharge,
+            Vat = request.Vat,
+            Tax = request.Tax,
+            DiscountAmount = request.DiscountAmount,
+            PurchaseDate = DateTime.Now,
+            Status = PurchaseStatus.Draft,
+        };
+
+        await dbContext.Purchases.AddAsync(purchase, cancellationToken);
+
+        foreach (var item in request.Items)
+        {
+            var unit = await dbContext.Units.FindAsync(item.UnitId, cancellationToken);
+            if (unit is null)
+                return BadRequest($"Purchase Item Unit with ID {item.UnitId} not found.");
+
+            var purchaseItem = new PurchaseItem
+            {
+                Id = Guid.NewGuid().ToString(),
+                PurchaseId = purchase.Id,
+                UnitId = item.UnitId,
+                ProductId = item.Id,
+                OrderedQuantity = item.Quantity,
+                UnitPrice = item.UnitPrice
+            };
+
+            await dbContext.PurchaseItems.AddAsync(purchaseItem, cancellationToken);
+        }
+
+        if (request.Payment is not null)
+        {
+            var payment = await dbContext.PaymentTransaction.AddAsync(new PaymentTransaction()
+            {
+                Id = Guid.NewGuid().ToString(),
+                PurchaseId = purchase.Id,
+                PartyId = request.SupplierId,
+                PartyType = PartyType.Supplier,
+                AmountPaid = request.Payment.PaidAmount,
+                NoteRef = request.Payment.NoteRef,
+                PaymentMethodId = request.Payment.PaymentMethodId,
+            });
+        }
+
+        await dbContext.SaveChangesAsync();
+        logger.LogInformation("Purchase created with ID {PurchaseId}", purchase.Id);
+        return CreatedAtAction(nameof(GetById), new { purchase }, purchase.Id);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdatePurchase(string id, [FromBody] CreatePurchaseRequest request, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Updating purchase with ID {PurchaseId} and request: {@Request}", id, request);
+
+        var purchase = dbContext.Purchases
+            .Include(p => p.Items)
+            .FirstOrDefault(p => p.Id == id);
+
+        if (purchase == null)
+        {
+            logger.LogWarning("Purchase with ID {PurchaseId} not found", id);
+            return NotFound();
+        }
 
         var supplier = dbContext.Suppliers.Find(request.SupplierId);
         if (supplier == null)
@@ -64,184 +161,80 @@ public class PurchaseController(
             return BadRequest($"Supplier with ID {request.SupplierId} not found.");
         }
 
-        // var purchase = new Purchase
-        // {
-        //     Id = Guid.NewGuid().ToString(),
-        //     PurchaseNumber = request.PurchaseNo,
-        //     SupplierId = request.SupplierId,
-        //     PurchaseDate = DateTime.Parse(request.PurchaseDate),
-        //     DeliveryCharge = request.DeliveryCharge,
-        //     VatAmount = request.VatAmount,
-        //     TaxAmount = request.TaxAmount,
-        //     DiscountAmount = request.DiscountAmount,
-        //     DueAmount = request.Items.Sum(i => i.Quantity * i.UnitPrice) + request.DeliveryCharge + request.VatAmount + request.TaxAmount - request.DiscountAmount - request.PaidAmount,
-        //     TotalAmount = request.Items.Sum(i => i.Quantity * i.UnitPrice) + request.DeliveryCharge + request.VatAmount + request.TaxAmount - request.DiscountAmount,
-        //     PaidAmount = request.PaidAmount,
-        //     Status = request.Status,
-        //     Items = request.Items.Select(i => new PurchaseItem
-        //     {
-        //         Id = Guid.NewGuid().ToString(),
-        //         ProductId = i.Id,
-        //         Quantity = i.Quantity,
-        //         RemainingQuantity = i.Quantity,
-        //         UnitPrice = i.UnitPrice,
-        //         PurchaseDate = DateTime.Parse(request.PurchaseDate)
-        //     }).ToList()
-        // };
+        purchase.SupplierId = request.SupplierId;
+        purchase.PurchaseDate = request.PurchaseDate;
+        purchase.ShipTo = request.ShipTo;
+        purchase.Status = request.Status;
+        purchase.DeliveryCharge = request.DeliveryCharge;
+        purchase.Vat = request.Vat;
+        purchase.Tax = request.Tax;
+        purchase.DiscountAmount = request.DiscountAmount;
 
-        // dbContext.Purchases.Add(purchase);
-        // await dbContext.SaveChangesAsync();
-
-        // var response = new GetPurchase(
-        //     purchase.Id,
-        //     purchase.PurchaseNumber,
-        //     purchase.Status.convertToString(),
-        //     purchase.PurchaseDate,
-        //     new EntityRef(supplier.Id, supplier.Name),
-        //     purchase.Items.Sum(i => i.Quantity * i.UnitPrice),
-        //     purchase.TotalAmount,
-        //     purchase.PaidAmount,
-        //     purchase.DueAmount,
-        //     purchase.DeliveryCharge,
-        //     purchase.VatAmount,
-        //     purchase.TaxAmount,
-        //     purchase.DiscountAmount,
-        //     purchase.Items.Select(i => new GetPurchaseItem(
-        //         i.ProductId,
-        //         i.Product?.Name,
-        //         i.Product?.LocalName,
-        //         i.Product?.PartNo ?? string.Empty,
-        //        i.Quantity,
-        //        i.RemainingQuantity,
-        //        i.UnitPrice
-        //     )).ToList()
-        // );
-
-        // logger.LogInformation("Purchase created with ID {PurchaseId}", purchase.Id);
-        await Task.FromResult(request);
-        return Ok(request);
-    }
-
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdatePurchase(string id, [FromBody] CreatePurchaseRequest request, CancellationToken cancellationToken)
-    {
-        logger.LogInformation("Updating purchase with ID {PurchaseId} and request: {@Request}", id, request);
-
-        var purchase = await dbContext.Purchases
-            .Include(p => p.Items)
-            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
-
-        if (purchase == null)
-        {
-            logger.LogWarning("Purchase with ID {PurchaseId} not found", id);
-            return NotFound();
-        }
-
-        var supplier = await dbContext.Suppliers.FindAsync(new object[] { request.SupplierId }, cancellationToken);
-        if (supplier == null)
-        {
-            logger.LogWarning("Supplier with ID {SupplierId} not found", request.SupplierId);
-            return BadRequest($"Supplier with ID {request.SupplierId} not found.");
-        }
-
-        // purchase.PurchaseNumber = request.PurchaseNo;
-        // purchase.SupplierId = request.SupplierId;
-        // purchase.PurchaseDate = DateTime.Parse(request.PurchaseDate);
-        // purchase.DeliveryCharge = request.DeliveryCharge;
-        // purchase.VatAmount = request.VatAmount;
-        // purchase.TaxAmount = request.TaxAmount;
-        // purchase.DiscountAmount = request.DiscountAmount;
-        // purchase.DueAmount = request.Items.Sum(i => i.Quantity * i.UnitPrice) + request.DeliveryCharge + request.VatAmount + request.TaxAmount - request.DiscountAmount - request.PaidAmount;
-        // purchase.TotalAmount = request.Items.Sum(i => i.Quantity * i.UnitPrice) + request.DeliveryCharge + request.VatAmount + request.TaxAmount - request.DiscountAmount;
-        // purchase.PaidAmount = request.PaidAmount;
-        // purchase.Status = request.Status;
-
-        // Update items
         dbContext.PurchaseItems.RemoveRange(purchase.Items);
-        // purchase.Items = request.Items.Select(i => new PurchaseItem
-        // {
-        //     Id = Guid.NewGuid().ToString(),
-        //     ProductId = i.Id,
-        //     Quantity = i.Quantity,
-        //     RemainingQuantity = i.Quantity,
-        //     UnitPrice = i.UnitPrice,
-        //     PurchaseDate = DateTime.Parse(request.PurchaseDate)
-        // }).ToList();
+
+        foreach (var item in request.Items)
+        {
+            var unit = dbContext.Units.Find(item.UnitId);
+            if (unit is null)
+                return BadRequest($"Purchase Item Unit with ID {item.UnitId} not found.");
+
+            var find = dbContext.PurchaseItems.Find(item.Id);
+            if (find is null)
+            {
+                var purchaseItem = new PurchaseItem
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    PurchaseId = purchase.Id,
+                    UnitId = item.UnitId,
+                    ProductId = item.Id,
+                    OrderedQuantity = item.Quantity,
+                    UnitPrice = item.UnitPrice
+                };
+                dbContext.PurchaseItems.Add(purchaseItem);
+            }
+            else
+            {
+                find.PurchaseId = purchase.Id;
+                find.UnitId = item.UnitId;
+                find.ProductId = item.Id;
+                find.OrderedQuantity = item.Quantity;
+                find.UnitPrice = item.UnitPrice;
+            }
+        }
+        if (request.Payment is not null)
+        {
+            var find = await dbContext.PaymentTransaction.FindAsync(purchase.Id);
+            if (find is null)
+            {
+                var paymentTransaction = new PaymentTransaction()
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    PurchaseId = purchase.Id,
+                    PartyId = request.SupplierId,
+                    PartyType = PartyType.Supplier,
+                    AmountPaid = request.Payment.PaidAmount,
+                    NoteRef = request.Payment.NoteRef,
+                    PaymentMethodId = request.Payment.PaymentMethodId,
+                };
+                await dbContext.PaymentTransaction.AddAsync(paymentTransaction);
+            }
+            else
+            {
+                find.PartyId = request.SupplierId;
+                find.PartyType = PartyType.Customer;
+                find.AmountPaid = request.Payment.PaidAmount;
+                find.PaymentMethodId = request.Payment.PaymentMethodId;
+                find.NoteRef = request.Payment.NoteRef;
+            }
+
+        }
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        // var response = new GetPurchase(
-        //     purchase.Id,
-        //     purchase.PurchaseNumber,
-        //      purchase.Status.convertToString(),
-        //     purchase.PurchaseDate,
-        //     new EntityRef(supplier.Id, supplier.Name),
-        //     purchase.Items.Sum(i => i.Quantity * i.UnitPrice),
-        //     purchase.TotalAmount,
-        //     purchase.PaidAmount,
-        //     purchase.DueAmount,
-        //     purchase.DeliveryCharge,
-        //     purchase.VatAmount,
-        //     purchase.TaxAmount,
-        //     purchase.DiscountAmount,
-        //     purchase.Items.Select(i => new GetPurchaseItem(
-        //         i?.ProductId,
-        //         i?.Product?.Name,
-        //         i?.Product?.LocalName,
-        //         i?.Product?.PartNo,
-        //        i.Quantity,
-        //        i.RemainingQuantity,
-        //        i.UnitPrice
-        //     )).ToList()
-        // );
         logger.LogInformation("Purchase with ID {PurchaseId} updated successfully", purchase.Id);
         return Ok(request);
     }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id, CancellationToken cancellationToken)
-    {
-        logger.LogInformation("Fetching purchase with ID {PurchaseId}", id);
-
-        var purchase = await dbContext.Purchases
-            .Include(p => p.Items)
-            .ThenInclude(i => i.Product)
-            .Include(p => p.Supplier)
-            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
-
-        if (purchase == null)
-        {
-            logger.LogWarning("Purchase with ID {PurchaseId} not found", id);
-            return NotFound();
-        }
-
-        // var response = new GetPurchase(
-        //     purchase.Id,
-        //     purchase.PurchaseNumber,
-        //     purchase.Status.convertToString(),
-        //     purchase.PurchaseDate,
-        //     new EntityRef(purchase.SupplierId, purchase.Supplier.Name),
-        //     0,
-        //     purchase.TotalAmount,
-        //     purchase.PaidAmount,
-        //     purchase.DueAmount,
-        //     purchase.DeliveryCharge,
-        //     purchase.VatAmount,
-        //     purchase.TaxAmount,
-        //     purchase.DiscountAmount,
-        //     purchase.Items.Select(i => new GetPurchaseItem(
-        //         i.ProductId,
-        //         i.Product.Name,
-        //         i.Product.LocalName,
-        //         i.Product.PartNo,
-        //        i.Quantity,
-        //        i.RemainingQuantity,
-        //        i.UnitPrice
-        //     )).ToList()
-        // );
-
-        return Ok();
-    }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeletePurchase(string id, CancellationToken cancellationToken)
@@ -265,147 +258,7 @@ public class PurchaseController(
         logger.LogInformation("Purchase with ID {PurchaseId} deleted successfully", id);
         return NoContent();
     }
-
-    // [HttpPut("{id}/status")]
-    // public async Task<IActionResult> UpdateStatus(string id, [FromBody] StatusUpdateRequest request, CancellationToken cancellationToken)
-    // {
-    //     logger.LogInformation("Updating status of purchase with ID {PurchaseId} to {Status}", id, request.Status);
-
-    //     var purchase = await dbContext.Purchases.FindAsync(new object[] { id }, cancellationToken);
-    //     if (purchase == null)
-    //     {
-    //         logger.LogWarning("Purchase with ID {PurchaseId} not found", id);
-    //         return NotFound();
-    //     }
-
-    //     //purchase.Status = request.Status;
-    //     await dbContext.SaveChangesAsync(cancellationToken);
-
-    //     logger.LogInformation("Status of purchase with ID {PurchaseId} updated to {Status}", id, request.Status);
-    //     return NoContent();
-    // }
-    [HttpPut("{id}/pay")]
-    public async Task<IActionResult> MakePayment(string id, [FromBody] double amount, CancellationToken cancellationToken)
-    {
-        logger.LogInformation("Making payment of {Amount} for purchase with ID {PurchaseId}", amount, id);
-
-        var purchase = await dbContext.Purchases.FindAsync(new object[] { id }, cancellationToken);
-        if (purchase == null)
-        {
-            logger.LogWarning("Purchase with ID {PurchaseId} not found", id);
-            return NotFound();
-        }
-
-        if (amount <= 0)
-        {
-            logger.LogWarning("Invalid payment amount: {Amount}", amount);
-            return BadRequest("Payment amount must be greater than zero.");
-        }
-
-        // if (amount > purchase.DueAmount)
-        // {
-        //     logger.LogWarning("Payment amount {Amount} exceeds due amount {DueAmount} for purchase with ID {PurchaseId}", amount, purchase.DueAmount, id);
-        //     return BadRequest("Payment amount exceeds due amount.");
-        // }
-
-        //  purchase.PaidAmount += amount;
-        //   purchase.DueAmount -= amount;
-
-        // if (purchase.DueAmount == 0)
-        // {
-        //     purchase.Status = Status.Paid;
-        // }
-        // else if (purchase.DueAmount > 0 && purchase.PaidAmount > 0)
-        // {
-        //     purchase.Status = Status.Partial;
-        // }
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        logger.LogInformation("Payment of {Amount} made for purchase with ID {PurchaseId}. New due amount is {DueAmount}", amount, id);
-        return NoContent();
-    }
-
-    [HttpPut("{id}/refund")]
-    public async Task<IActionResult> ProcessRefund(string id, [FromBody] double amount, CancellationToken cancellationToken)
-    {
-        logger.LogInformation("Processing refund of {Amount} for purchase with ID {PurchaseId}", amount, id);
-
-        var purchase = await dbContext.Purchases.FindAsync(new object[] { id }, cancellationToken);
-        if (purchase == null)
-        {
-            logger.LogWarning("Purchase with ID {PurchaseId} not found", id);
-            return NotFound();
-        }
-
-        if (amount <= 0)
-        {
-            logger.LogWarning("Invalid refund amount: {Amount}", amount);
-            return BadRequest("Refund amount must be greater than zero.");
-        }
-
-        // if (amount > purchase.PaidAmount)
-        // {
-        //     logger.LogWarning("Refund amount {Amount} exceeds paid amount {PaidAmount} for purchase with ID {PurchaseId}", amount, purchase.PaidAmount, id);
-        //     return BadRequest("Refund amount exceeds paid amount.");
-        // }
-
-        // purchase.PaidAmount -= amount;
-        // purchase.DueAmount += amount;
-
-        // if (purchase.DueAmount > 0)
-        // {
-        //     purchase.Status = Status.Partial;
-        // }
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        logger.LogInformation("Refund of {Amount} processed for purchase with ID {PurchaseId}. New paid amount is {PaidAmount}", amount, id);
-        return NoContent();
-    }
-
-    [HttpPut("{id}/retrun")]
-    public async Task<IActionResult> ReturnPurchase(string id, [FromBody] List<CreatePurchaseItem> returnItems, CancellationToken cancellationToken)
-    {
-        logger.LogInformation("Processing return for purchase with ID {PurchaseId} for items: {@ReturnItems}", id, returnItems);
-
-        var purchase = await dbContext.Purchases
-            .Include(p => p.Items)
-            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
-
-        if (purchase == null)
-        {
-            logger.LogWarning("Purchase with ID {PurchaseId} not found", id);
-            return NotFound();
-        }
-
-        foreach (var returnItem in returnItems)
-        {
-            var item = purchase.Items.FirstOrDefault(i => i.ProductId == returnItem.Id);
-            if (item == null)
-            {
-                logger.LogWarning("Product with ID {ProductId} not found in purchase with ID {PurchaseId}", returnItem.Id, id);
-                return BadRequest($"Product with ID {returnItem.Id} not found in this purchase.");
-            }
-
-            // if (returnItem.Quantity <= 0 || returnItem.Quantity > item.RemainingQuantity)
-            // {
-            //     logger.LogWarning("Invalid return quantity {Quantity} for product with ID {ProductId} in purchase with ID {PurchaseId}", returnItem.Quantity, returnItem.Id, id);
-            //     return BadRequest($"Invalid return quantity for product with ID {returnItem.Id}.");
-            // }
-
-            //  item.RemainingQuantity -= returnItem.Quantity;
-            // Optionally, you can track returned quantity separately
-        }
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        logger.LogInformation("Return processed for purchase with ID {PurchaseId}", id);
-        return NoContent();
-    }
-
 }
-
 
 public record GetPurchaseResponse(
     string Id,
@@ -427,19 +280,35 @@ public record GetPurchaseItem(
 
 public record CreatePurchaseRequest(
     string PurchaseNo,
+    DateTime PurchaseDate,
     string SupplierId,
-    string PurchaseDate,
+    PurchaseStatus Status,
     double DeliveryCharge,
-    double VatAmount,
-    double TaxAmount,
+    float Vat,
+    float Tax,
     double DiscountAmount,
-    double PaidAmount,
+    string ShipTo,
+    string NoteRef,
+    CreatePurchasePaymentRequest Payment,
     List<CreatePurchaseItem> Items
     );
 
+public record CreatePurchasePaymentRequest(
+    string PaymentMethodId,
+    double PaidAmount,
+    string NoteRef
+);
 public record CreatePurchaseItem(
     string Id,
-    int Quantity,
+    double Quantity,
+    string UnitId,
     double UnitPrice
     );
 
+public enum PaymentMethod
+{
+    Cash,
+    Bikash,
+    Nagad,
+    Bank
+}

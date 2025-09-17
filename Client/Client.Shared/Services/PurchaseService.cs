@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Client.Shared.Services;
@@ -8,7 +9,7 @@ public class PurchaseService
 
     public PurchaseService(IHttpClientFactory httpClientFactory)
     {
-        _httpClient = httpClientFactory.CreateClient("API"); // Use named client "purchase"
+        _httpClient = httpClientFactory.CreateClient("API");
     }
 
     public async Task<Pages<GetPurchaseDto>> GetAsync(
@@ -56,7 +57,6 @@ public class PurchaseService
         })!;
     }
 
-
     public async Task DeleteAsync(string id)
     {
         await _httpClient.DeleteAsync($"api/purchases/{id}");
@@ -64,33 +64,56 @@ public class PurchaseService
     }
 }
 
-
-public enum Status
-{
-    Draft,
-    Pending,
-    Done
-}
 public record CreatePurchaseDto(
     string PurchaseNo,
-    string SupplierId,
     DateTime PurchaseDate,
+    string SupplierId,
+    PurchaseStatus Status,
     double DeliveryCharge,
     double Vat,
     double Tax,
     double DiscountAmount,
-    double PaidAmount,
-    Status Status,
-    List<CreatePurchaseItemDto> Items
+    string ShipTo,
+    string NoteRef,
+    List<CreatePurchaseItemDto> Items,
+    CreatePurchasePaymentDto Payment
     );
 
+public record CreatePurchasePaymentDto(
+    string PaymentMethodId,
+    double PaidAmount,
+    string NoteRef
+);
 public record CreatePurchaseItemDto(
     string Id,
-    int Quantity,
+    string UnitId,
+    double Quantity,
     double UnitPrice
     );
 
+public enum PurchaseStatus
+{
+    [Description("Purchase created but not confirmed")]
+    Draft,
 
+    [Description("Purchase order sent to supplier")]
+    Ordered,
+
+    [Description("Some items received, some pending")]
+    PartialReceived,
+
+    [Description("All items received from supplier")]
+    Received,
+
+    [Description("Items verified for quality")]
+    QualityCheck,
+
+    [Description("Items approved and moved to stock")]
+    ReadyToStock,
+
+    [Description("Purchase order cancelled")]
+    Cancelled
+}
 public record GetPurchaseDto(
     string Id,
     string PurchaseNo,

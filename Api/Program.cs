@@ -1,6 +1,7 @@
 using System.Data;
 using Api;
 using Api.Mapping;
+using Api.Seed;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry;
@@ -23,7 +24,7 @@ var resource = ResourceBuilder.CreateDefault()
 // builder.Services.AddScoped<IDbConnection>(sp =>
 //     new SqlConnection(builder.Configuration.GetConnectionString("StoreDb")));
 
-// builder.Services.AddHostedService<DataSeedingService>();
+builder.Services.AddHostedService<DataSeedingService>();
 
 //OpenTelemetry configurations
 builder.Services.AddOpenTelemetry()

@@ -41,6 +41,7 @@ builder.Services.AddScoped<PurchaseService>();
 builder.Services.AddScoped<FeatureService>();
 builder.Services.AddScoped<UnitService>();
 builder.Services.AddScoped<UnitConversionService>();
+builder.Services.AddScoped<PaymentMethodService>();
 
 var app = builder.Build();
 // Must be before other middleware that uses localization

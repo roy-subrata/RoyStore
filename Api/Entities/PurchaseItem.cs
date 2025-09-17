@@ -2,18 +2,51 @@
 
 public class PurchaseItem : BaseEntity
 {
+    // References
     public string? ProductId { get; set; }
     public Product Product { get; set; } = null!;
-    
-    public Purchase Purchase { get; set; }
-    public string? PurchaseId { get; set; }= null!;
-    public decimal Quantity { get; set; }            // Purchased quantity in selected unit
-    public int UnitId { get; set; }
-    public Unit Unit { get; set; } = null!;          // Unit used in purchase
-    public decimal UnitConversion { get; set; } = 1; // To convert to base unit
-    public decimal UnitPrice { get; set; }           // Price per unit (purchase unit)
-    public decimal TotalPrice => Quantity * UnitPrice;
 
-    // Update stock in base unit
-    public void AddToStock() => Product.StockQuantity += Quantity * UnitConversion;
+    public string? PurchaseId { get; set; } = null!;
+    public Purchase Purchase { get; set; } = null!;
+
+    // Quantities
+    public double OrderedQuantity { get; set; }        // Total quantity ordered in purchase unit
+    public double ReceivedQuantity { get; set; }       // Quantity received so far
+
+    // Unit info
+    public string UnitId { get; set; }                     // Purchase unit
+    public Unit Unit { get; set; } = null!;
+
+    // Conversion factor to product's base unit (stored at purchase time)
+    public double UnitConversion { get; set; } = 1;
+
+    // Price
+    public double UnitPrice { get; set; }             // Price per purchase unit
+    public double TotalPrice => OrderedQuantity * UnitPrice;
+
+    // Add received quantity to stock
+    public void AddToStock(double quantityToAdd)
+    {
+        if (quantityToAdd <= 0)
+            throw new ArgumentException("Received quantity must be positive.");
+
+        // Convert to base unit
+        var baseQty = quantityToAdd * UnitConversion;
+
+        // Update product stock
+        Product.StockQuantity += baseQty;
+
+        // Update received quantity
+        ReceivedQuantity += quantityToAdd;
+
+        // Prevent exceeding ordered quantity
+        if (ReceivedQuantity > OrderedQuantity)
+            ReceivedQuantity = OrderedQuantity;
+    }
+
+    // Remaining quantity to receive
+    public double RemainingQuantity => OrderedQuantity - ReceivedQuantity;
+
+    // Check if fully received
+    public bool IsFullyReceived => ReceivedQuantity >= OrderedQuantity;
 }

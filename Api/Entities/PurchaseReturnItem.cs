@@ -4,11 +4,11 @@ public class PurchaseReturnItem : BaseEntity
 {
     public string? ProductId { get; set; }
     public Product Product { get; set; } = null!;
-    public int Quantity { get; set; }
+    public double Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public int UnitId { get; set; }
     public Unit Unit { get; set; } = null!;          // Unit used in purchase
-    public decimal UnitConversion { get; set; } = 1; // To convert to base unit
+    public double UnitConversion { get; set; } = 1; // To convert to base unit
     // Reduce stock on return to supplier
     public void ReduceStock() => Product.StockQuantity -= Quantity * UnitConversion;
 

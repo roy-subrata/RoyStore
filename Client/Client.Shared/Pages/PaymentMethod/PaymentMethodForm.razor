@@ -1,0 +1,79 @@
+@using Client.Shared.Services
+@inject PaymentMethodService PaymentMethodService
+@inject NavigationManager Navigation
+@inject IStringLocalizer<Shared> L
+
+<MudPaper Class="pa-4">
+    <MudForm @ref="_form" Model="Model" @bind-IsValid="@_success">
+        <MudTextField T="string" Label="Name" @bind-Value="Model.Name" Required="true"
+            RequiredError="Name is required!" />
+
+        <MudCheckBox Label="Active" @bind-Value="Model.IsActive" />
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!_success)" Class="mt-2 ml-auto"
+            OnClick="Submit">
+            @L["Save"]
+        </MudButton>
+    </MudForm>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public PaymentMethodModel Model { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<PaymentMethodModel> OnSubmitCompleted { get; set; }
+
+    private bool IsEditMode => String.IsNullOrEmpty(Model.Id) == false;
+    private bool _success;
+    private MudForm? _form;
+
+    protected override void OnParametersSet()
+    {
+        if (IsEditMode)
+        {
+            Model = new PaymentMethodModel
+            {
+                Id = Model.Id,
+                Name = Model.Name,
+                IsActive = Model.IsActive
+            };
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (_form is null)
+            return;
+        if (_form.IsValid)
+        {
+            try
+            {
+                if (IsEditMode)
+                {
+                    await PaymentMethodService.UpdateAsync(Model.Id, new UpdatePaymentMethod(Model.Id, Model.Name,
+                    Model.IsActive));
+                    await OnSubmitCompleted.InvokeAsync(Model);
+                }
+                else
+                {
+                    var response = await PaymentMethodService.CreateAsync(new CreatePaymentMethod(Model.Name, Model.IsActive));
+                    Model.Id = response.Id;
+                    await OnSubmitCompleted.InvokeAsync(Model);
+                }
+                Navigation.NavigateTo("/PaymentMethods");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($@"Error: {ex.Message}");
+            }
+        }
+    }
+
+    public class PaymentMethodModel
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+    }
+}

@@ -8,10 +8,10 @@ public class PaymentTransaction : BaseEntity
     public string? SaleId { get; set; }
     public Sale? Sale { get; set; }
 
-    public int? SaleReturnId { get; set; }
+    public string? SaleReturnId { get; set; }
     public SaleReturn? SaleReturn { get; set; }
 
-    public int? PurchaseId { get; set; }
+    public string? PurchaseId { get; set; }
     public Purchase? Purchase { get; set; }
 
     public string? PurchaseReturnId { get; set; }
@@ -22,9 +22,9 @@ public class PaymentTransaction : BaseEntity
 
     // ---------------- Currency Fields ----------------
     public string CurrencyCode { get; set; } = "BDT";   // Payment currency
-    public decimal ExchangeRate { get; set; } = 1;      // Conversion to base currency
-    public decimal AmountPaid { get; set; }             // Amount in CurrencyCode
-    public decimal BaseAmount => Math.Round(AmountPaid * ExchangeRate, 2); // Base currency
+    public double ExchangeRate { get; set; } = 1;      // Conversion to base currency
+    public double AmountPaid { get; set; }             // Amount in CurrencyCode
+    public double BaseAmount => Math.Round(AmountPaid * ExchangeRate, 2); // Base currency
 
     public int? CurrencyId { get; set; }
     public Currency? Currency { get; set; }            // Navigation property
@@ -34,7 +34,7 @@ public class PaymentTransaction : BaseEntity
     public bool IsAdjustment { get; set; } = false;    // Used to apply advance/refund
 
     public DateTime PaymentDate { get; set; }
-    public string? ReferenceNumber { get; set; }
+    public string? NoteRef { get; set; }
     public string? Notes { get; set; }
 
     public string? CreatedBy { get; set; }

@@ -41,9 +41,9 @@ public class SaleReturnItem : BaseEntity
     public decimal UnitPrice { get; set; }
     public int UnitId { get; set; }
     public Unit Unit { get; set; } = null!;          // Unit used in purchase
-    public decimal UnitConversion { get; set; } = 1; // To convert to base unit
-    public decimal RefundPrice { get; set; }          // Actual refund price per unit
-    public decimal RefundAmount => Quantity * RefundPrice;
+    public double UnitConversion { get; set; } = 1; // To convert to base unit
+    public double RefundPrice { get; set; }          // Actual refund price per unit
+    public double RefundAmount => Quantity * RefundPrice;
     // Add stock back on return
 
     public void AddToStock() => Product.StockQuantity += Quantity * UnitConversion;

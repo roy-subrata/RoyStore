@@ -7,7 +7,7 @@ public record GetProductResponse(
     string Name,
     string LocalName,
     string PartNo,
-    decimal StockQuantity,
+    double StockQuantity,
     string Description,
     EntityRef Brand,
     EntityRef Category,
