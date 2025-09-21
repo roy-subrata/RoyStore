@@ -13,4 +13,5 @@ public class Purchase : BaseEntity
     public double Tax{ get; set; }
     public double DeliveryCharge { get; set; }
     public ICollection<PurchaseItem> Items { get; set; } = new List<PurchaseItem>();
+    public ICollection<PaymentTransaction> PaymentTransactions { get; set; } = new List<PaymentTransaction>();
 }

@@ -1,72 +1,41 @@
-@page "/purchase-payment"
+@page "/purchasepayment/{Id?}"
 @inherits LayoutComponentBase
-
 @using Client.Shared.Pages.Shared
 @using Client.Shared.Services
+@using MudBlazor.Extensions
 
-@using static Client.Shared.Pages.Brand.BrandForm
 @inject PaymentMethodService PaymentMethodService;
+@inject PurchaseService PurchaseService;
 @inject IDialogService DialogService
-@inject BrandService BrandService
-@inject ISnackbar Snackbar
+@inject PurchasePaymentService PurchasePaymentService
+@inject NavigationManager Navigation;
+@inject ISnackbar Snackbar;
 
 <MudGrid>
-    <MudItem md="4">
+    <MudItem md="8">
+            <MudGrid>
+            <MudItem xs="12" sm="6" md="6">
+            <MudPaper Class="pa-3" Elevation="1">
         <MudText Typo="Typo.subtitle2">Purchase No:</MudText>
-        <MudText Typo="Typo.body2" Class="mb-2">54654</MudText>
-
+        <MudText Typo="Typo.body2" Class="mb-2">@Purchase?.PurchaseNo</MudText>
         <MudText Typo="Typo.subtitle2">Purchase Date:</MudText>
-        <MudText Typo="Typo.body2" Class="mb-2">12/09/2025</MudText>
-
+        <MudText Typo="Typo.body2" Class="mb-2">@Purchase?.PurchaseDate</MudText>
+        <MudText Typo="Typo.subtitle2">Purchase Status:</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">@Purchase?.Status</MudText>
+           </MudPaper>
+    </MudItem>
+             <MudItem xs="12" sm="6" md="6">
+              <MudPaper Class="pa-3" Elevation="1">
         <MudText Typo="Typo.subtitle2">Supplier Name:</MudText>
-        <MudText Typo="Typo.body2">ABC Traders</MudText>
-    </MudItem>
-    <MudItem xs="4">
+        <MudText Typo="Typo.body2"  Class="mb-2">@Purchase?.Supplier?.Name</MudText>
+        <MudText Typo="Typo.subtitle2">Total Amount:</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">@(Purchase?.SubTotal)</MudText>
         <MudText Typo="Typo.subtitle2">Due Amount:</MudText>
-        <MudText Typo="Typo.body2" Class="mb-2">৳ 10,000</MudText>
-
-        <MudText Typo="Typo.subtitle2">Advanced Amount:</MudText>
-        <MudText Typo="Typo.body2" Class="mb-2">৳ 5,000</MudText>
-
-        <MudText Typo="Typo.subtitle2">Last Payment:</MudText>
-        <MudText Typo="Typo.body2">৳ 2,000</MudText>
-    </MudItem>
-
-    <MudItem md="4">
-        <MudGrid>
-            <MudItem md="6">
-                <MudNumericField T="double" Label="Payment" Margin="Margin.Dense" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem md="6">
-                <MudAutocomplete T="PaymentMethodDto" Margin="Margin.Dense" Label="Type" @bind-Value="_selectedMethod"
-                    SearchFunc="SearchPaymentMethod" ToStringFunc="x => x?.ProviderName" Dense="true"
-                    Variant="Variant.Outlined" Style="width:100%;">
-                    <ItemTemplate>
-                        <div style="display: flex; flex-direction: column;">
-                            <!-- Header / main text -->
-                            <span style="font-weight: 600; font-size: 1rem;">@context.ProviderName</span>
-
-                            <!-- Subtext / smaller, muted -->
-                            <span style="font-size: 0.85rem; color: gray;">
-                                @context.AccountNo
-                            </span>
-                        </div>
-                    </ItemTemplate>
-                </MudAutocomplete>
-            </MudItem>
+        <MudText Typo="Typo.body2" Class="mb-2">@Purchase?.Due</MudText>
+                </MudPaper>
+    </MudItem>    
         </MudGrid>
-        <MudTextField Lines="2" T="string" Label="Note" Margin="Margin.Dense" Variant="Variant.Outlined">
-        </MudTextField>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary">
-            Payment
-        </MudButton>
-
-    </MudItem>
-</MudGrid>
-
-
-
-<MudStack class="mt-1" Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack class="mt-1" Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
     <!-- Search -->
     <MudTextField @bind-Value="_searchText" Placeholder="Search..." Variant="Variant.Outlined" Margin="Margin.Dense"
         Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
@@ -77,25 +46,29 @@
 
     </MudStack>
 </MudStack>
-
-<MudTable @ref="_table" Class="mt-3" T="BrandVm" ServerData="LoadServerData" @bind-SelectedItem="_selectedBrand"
-    Elevation="0" Bordered=true Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+      <div style="max-height:400px; overflow-y:auto;">
+<MudTable @ref="_table" Class="mt-3" T="PurchasePaymentVm" ServerData="LoadServerData" Elevation="0" Bordered=true
+    Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
     <HeaderContent>
         <MudTh>
-            <MudTableSortLabel T="BrandVm" SortBy="x => x.Name">Date</MudTableSortLabel>
+            <MudTableSortLabel T="PurchasePaymentVm" SortBy="x => x.PaymentDate">Date</MudTableSortLabel>
         </MudTh>
         <MudTh>
-            <MudTableSortLabel T="BrandVm" SortBy="x => x.Description">Payment</MudTableSortLabel>
+            <MudTableSortLabel T="PurchasePaymentVm" SortBy="x => x.PaymentAmount">Payment</MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudTableSortLabel T="PurchasePaymentVm" SortBy="x => x.NoteRef">Reference</MudTableSortLabel>
         </MudTh>
         <MudTh>Actions</MudTh>
     </HeaderContent>
 
     <RowTemplate>
-        <MudTd DataLabel="Name">@context.Name</MudTd>
-        <MudTd DataLabel="Description">@context.Description</MudTd>
+        <MudTd DataLabel="Name">@context.PaymentDate</MudTd>
+        <MudTd DataLabel="Description">@context.PaymentAmount</MudTd>
+         <MudTd DataLabel="NoteRef">@context.NoteRef</MudTd>
         <MudTd>
-            <MudIconButton Size="Size.Small" OnClick="@(async () => await EditDailogAsync(context))"
-                Icon="@Icons.Material.Outlined.Edit" Color="Color.Primary" />
+            <MudIconButton Size="Size.Small" OnClick="@(() => Edit(context))" Icon="@Icons.Material.Outlined.Edit"
+                Color="Color.Primary" />
             <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" Color="Color.Warning"
                 OnClick="@(async () => await ConfirmAsync(context))" />
         </MudTd>
@@ -105,29 +78,106 @@
         <MudTablePager />
     </PagerContent>
 </MudTable>
+</div>
+</MudItem>
+    <MudItem md="4">
+                <MudPaper Class="pa-3" Elevation="1">
+        <MudForm @ref="_form" Model="Model" @bind-IsValid="@success">
+             <MudGrid>
+            <MudItem md="12">
+      <MudDatePicker Label="MM/dd/yyyy" Margin="Margin.Dense" Editable="true" @bind-Date="Model.PaymentDate"
+                DateFormat="MM/dd/yyyy" Placeholder="en-US Date" Variant="Variant.Outlined" />
+        </MudItem>
+            </MudGrid>
+            <MudGrid>
+                <MudItem md="6">
+                    <MudNumericField T="double" @bind-Value="Model.PaymentAmount" Label="Payment" Margin="Margin.Dense"
+        Required="true" RequiredError="Amount is required!" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem md="6">
+                    <MudAutocomplete T="PaymentMethodDto" Margin="Margin.Dense" Label="Type"
+                        @bind-Value="_selectedMethod" SearchFunc="SearchPaymentMethod"
+                        Required="true" RequiredError="Payment method is required!"
+                        ToStringFunc="x => x?.ProviderName" Dense="true" Variant="Variant.Outlined" Style="width:100%;">
+                        <ItemTemplate>
+                            <div style="display: flex; flex-direction: column;">
+                                <!-- Header / main text -->
+                                <span style="font-weight: 600; font-size: 1rem;">@context.ProviderName</span>
+
+                                <!-- Subtext / smaller, muted -->
+                                <span style="font-size: 0.85rem; color: gray;">
+                                    @context.AccountNo
+                                </span>
+                            </div>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                </MudItem>
+            </MudGrid>
+       
+            <MudGrid>
+            <MudItem md="12">
+              <MudTextField Lines="2" T="string" @bind-Value="Model.NoteRef" Label="Note" Margin="Margin.Dense"
+            Variant="Variant.Outlined">
+        </MudTextField>
+        </MudItem>
+            </MudGrid>
+        </MudForm>
+            </MudPaper>
+
+        <div Class="pa-3 mt-4 d-flex justify-end" Elevation="1" Style="position:sticky; bottom:0; background:white; z-index:10;">
+         <MudButton Variant="Variant.Filled" ButtonType="ButtonType.Submit" Color="Color.Primary"  Disabled="@(!success)"
+            OnClick="Submit">
+            Payment
+        </MudButton>
+         <MudButton Variant="Variant.Filled" ButtonType="ButtonType.Button" Color="Color.Primary" 
+            OnClick="Clear">
+            Clear
+        </MudButton>
+        </div>
+
+    </MudItem>
+</MudGrid>
+
+
 
 
 @code {
+    [Parameter]
+    public string Id { get; set; } = string.Empty;
     private string _searchText = "";
-    private BrandVm? _selectedBrand;
-    private PaymentMethodDto _selectedMethod;
+    private PaymentMethodDto? _selectedMethod;
+    private GetPurchaseDto Purchase { get; set; }=null!;
+    private MudForm? _form;
+    private bool success;
+    private bool IsEditMode => !string.IsNullOrEmpty(Model.Id);
+    private PurchasePaymentModel Model { get; set; } = new();
+    private MudTable<PurchasePaymentVm>? _table;
 
-    // Main server-side data loader
-    private async Task<TableData<BrandVm>> LoadServerData(TableState state, CancellationToken cancellationToken)
+    protected override async Task OnInitializedAsync()
     {
-        var page = state.Page + 1; // MudTable is 0-based
+
+        if (!string.IsNullOrEmpty(Id))
+            Purchase = await PurchaseService.GetByIdAsync(Id);
+    }
+    private async Task<TableData<PurchasePaymentVm>> LoadServerData(TableState state, CancellationToken cancellationToken)
+    {
+        var page = state.Page + 1;
         var pageSize = state.PageSize;
 
-        var result = await BrandService.GetAsync(_searchText, page, pageSize);
+        var result = await PurchasePaymentService.GetAsync(_searchText, Id, page, pageSize);
 
-        var items = result.Data.Select(c => new BrandVm
+
+        var items = (result?.Data ?? []).Select(c => new PurchasePaymentVm
         {
             Id = c.Id,
-            Name = c.Name,
-            Description = c.Description
+            PaymentAmount = c.PaymentAmount,
+            PurchasePaymentId = c.PaymentMethodId,
+            PaymentDate = c.PaymentDate,
+            NoteRef = c.NoteRef
         }).ToList();
+   
 
-        return new TableData<BrandVm>
+        return new TableData<PurchasePaymentVm>
         {
             Items = items,
             TotalItems = result.Total
@@ -138,23 +188,17 @@
         Pages<PaymentMethodDto>? result = await PaymentMethodService.GetAsync(search: value ?? string.Empty);
         return result.Data;
     }
-
-
     private void OnSearchChanged(string text)
     {
         _searchText = text;
         _ = _table?.ReloadServerData();
     }
 
-    private MudTable<BrandVm>? _table;
-
-    private void Print() => Snackbar.Add("Print feature not implemented yet.", Severity.Info);
-
-    private async Task ConfirmAsync(BrandVm Brand)
+    private async Task ConfirmAsync(PurchasePaymentVm vm)
     {
         var parameters = new DialogParameters
 {
-{ "ContentText", "Are you sure you want to delete this Brand?" },
+{ "ContentText", "Are you sure you want to delete this Payment?" },
 { "ButtonText", "Yes" },
 { "Color", Color.Success }
 };
@@ -167,76 +211,80 @@
         });
 
         var result = await dialog.Result;
-        if (result != null && !result.Canceled)
+        if (result is { Canceled: false })
         {
-            await BrandService.DeleteAsync(Brand.Id);
-            Snackbar.Add("Brand deleted successfully!", Severity.Success);
+            await PurchasePaymentService.DeleteAsync(vm.Id);
+            Snackbar.Add("Payment deleted successfully!", Severity.Success);
             await _table!.ReloadServerData();
         }
     }
 
-    private async Task HandleBrandSavedAsync(BrandModel result)
+    private void Clear(){
+        Model=new PurchasePaymentModel();
+        _selectedMethod=null;
+    }
+    private async Task Submit()
     {
-        if (result is not null)
+        if (_form is null) return;
+        if (!_form.IsValid) return;
+
+        try
         {
-            Snackbar.Add("Brand saved successfully!", Severity.Success);
-            await _table!.ReloadServerData();
+            CreatePurchasePaymentDto? purchasePayment=new CreatePurchasePaymentDto(
+                Purchase.Id,
+                Purchase.Supplier.Id,
+                Model.PaymentMethodId,
+                Model.PaymentDate.Value,
+                Model.PaymentAmount,
+                Model.NoteRef
+                );
+            if (IsEditMode)
+            {
+                //
+                await PurchasePaymentService.UpdateAsync(Model.Id,purchasePayment);
+            }
+
+            else
+            {
+                await PurchasePaymentService.CreateAsync( purchasePayment);
+
+            }
+            _ = _table?.ReloadServerData();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($@"Error: {ex.Message}");
         }
     }
 
-    private async Task OpenAddDialog()
+    private async Task Edit(PurchasePaymentVm purchasePayment)
     {
-        var parameters = new DialogParameters
-{
-{ "Model", new BrandModel() },
-{ "OnSubmitCompleted", EventCallback.Factory.Create<BrandModel>(this, HandleBrandSavedAsync) }
-};
-
-        @* var dialog = await DialogService.ShowAsync<BrandForm>("Add Brand", parameters, new DialogOptions
+        Model = new PurchasePaymentModel()
         {
-            CloseButton = true,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true
-        });
-
-        var result = await dialog.Result;
-        if (result != null && !result.Canceled)
-        {
-            Snackbar.Add("Brand saved successfully!", Severity.Success);
-            await _table!.ReloadServerData();
-        } *@
-    }
-
-    private async Task EditDailogAsync(BrandVm Brand)
-    {
-        @* var brandModel = new BrandModel
-        {
-            Id = Brand.Id,
-            Name = Brand.Name,
-            Description = Brand.Description
+            Id = purchasePayment.Id,
+            PaymentDate = purchasePayment.PaymentDate,
+            PaymentAmount = purchasePayment.PaymentAmount,
+            PaymentMethodId = purchasePayment.PurchasePaymentId,
+            NoteRef = purchasePayment.NoteRef
         };
-
-        var dialog = await DialogService.ShowAsync<BrandForm>("Edit Brand",
-        new DialogParameters
-        {
-{ "Model", brandModel },
-{ "OnSubmitCompleted", EventCallback.Factory.Create<BrandModel>(this, HandleBrandSavedAsync) }
-        },
-        new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
-
-        var result = await dialog.Result;
-        if (result != null && !result.Canceled)
-        {
-            Snackbar.Add("Brand updated successfully!", Severity.Success);
-            await _table!.ReloadServerData();
-        } *@
+        _selectedMethod = await PaymentMethodService.GetByIdAsync(Model.PaymentMethodId);
     }
 
-    private class BrandVm
+    private class PurchasePaymentVm
     {
         public string Id { get; set; } = string.Empty;
-        public string Name { get; set; } = "";
-        public string Description { get; set; } = "";
-        public string CreatedAt { get; set; } = "";
+        public DateTime? PaymentDate { get; set; }
+        public string PurchasePaymentId { get; set; } = string.Empty;
+        public double PaymentAmount { get; set; }
+        public string NoteRef { get; set; }=string.Empty;
+    }
+
+    private class PurchasePaymentModel
+    {
+        public string Id { get; set; }
+        public string PaymentMethodId { get; set; }=string.Empty;
+        public DateTime? PaymentDate { get; set; }
+        public double PaymentAmount { get; set; }
+        public string NoteRef { get; set; }=string.Empty;
     }
 }

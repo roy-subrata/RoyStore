@@ -1,70 +1,70 @@
-@page "/purchase/itemreceive/{Id?}"
+@page "/purchase/shipment/{Id?}"
 @using Client.Shared.Pages.Shared
 @using Client.Shared.Services
 @inject IStringLocalizer<Shared> L
 @inject SupplierService SupplierService
 @inject PurchaseService PurchaseService
 @inject ProductService ProductService
+@inject UnitService UnitService
 @inject NavigationManager Navigation
 
+<MudGrid>
+    <MudItem md="8">
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="6">
+                <MudPaper Class="pa-3" Elevation="1">
+                    <MudText Typo="Typo.subtitle2">Purchase No:</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-2">@PurchaseVm?.PurchaseNo</MudText>
+
+                    <MudText Typo="Typo.subtitle2">Purchase Date:</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-2">@PurchaseVm?.PurchaseDate</MudText>
+
+                    <MudText Typo="Typo.subtitle2">Purchase Status:</MudText>
+                    <MudText Typo="Typo.body2">@PurchaseVm?.Status</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="6">
+                <MudPaper Class="pa-3" Elevation="1">
+                    <MudText Typo="Typo.subtitle2">Supplier Name:</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-2">@PurchaseVm?.Supplier?.Name</MudText>
+
+                    <MudText Typo="Typo.subtitle2">Total Amount:</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-2">@PurchaseVm?.SubTotal</MudText>
+
+                    <MudText Typo="Typo.subtitle2">Due Amount:</MudText>
+                    <MudText Typo="Typo.body2">@PurchaseVm?.Due</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+<!-- Items Form -->
 <MudForm @ref="form" Model="Purchase">
-    <MudGrid Spacing="5">
-        <MudItem xs="12" md="4">
-            <MudItem>
-                Po No : @Purchase.PurchaseNo
-            </MudItem>
-            <MudDatePicker Label="MM/dd/yyyy" Margin="Margin.Dense" Editable="true" @bind-Date="Purchase.PurchaseDate"
-                DateFormat="MM/dd/yyyy" Placeholder="en-US Date" Variant="Variant.Outlined" />
-        </MudItem>
-
-        <MudItem xs="12" md="4">
-            <MudItem>
-                Po No : @Purchase.PurchaseNo
-            </MudItem>
-            <MudAutocomplete T="SupplierDto" Margin="Margin.Dense" Label="Vendor" @bind-Value="SelectedSupplier"
-                SearchFunc="SearchSuppliers" ToStringFunc="x => x?.Name" Dense="true" Variant="Variant.Outlined"
-                Style="width:100%;" />
-        </MudItem>
-
-        <MudItem xs="12" md="4">
-            <MudItem>
-                Po No : @Purchase.PurchaseNo
-            </MudItem>
-            <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" T="string" Lines="2" Label="Ship To">
-            </MudTextField>
-        </MudItem>
-    </MudGrid>
-
-
     <MudGrid>
-        <MudItem xs="12" sm="6" md="9">
-            <MudAutocomplete T="Item" Label="@L["Search"]" @bind-Value="SelectedItem" SearchFunc="SearchItems"
-                ToStringFunc="x => x?.Name" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Class="w-50">
+        <MudItem xs="12" sm="12" md="12">
+            <!-- Item Search -->
+            <MudAutocomplete T="Item" Label="@L["Search"]" @bind-Value="SelectedItem"
+                             SearchFunc="SearchItems" ToStringFunc="x => x?.Name"
+                             Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Dense="true" Class="w-75 mb-4">
                 <ItemTemplate>
                     <div style="display: flex; flex-direction: column;">
-                        <!-- Header / main text -->
                         <span style="font-weight: 600; font-size: 1rem;">@context.Name</span>
-
-                        <!-- Subtext / smaller, muted -->
                         <span style="font-size: 0.85rem; color: gray;">
                             @context.LocalName | Qty: @context.Quantity
                         </span>
                     </div>
                 </ItemTemplate>
-
             </MudAutocomplete>
 
-            <MudTable Items="@Purchase.Items" CustomFooter=true Hover="true" Dense="true" Bordered="false"
-                Elevation="0">
+       <div style="max-height:400px; overflow-y:auto;">
+            <MudTable Items="@Purchase.Items" CustomFooter="true" Hover="true"
+                      Dense="true" Bordered="false" Elevation="0" Class="mb-4">
 
                 <RowTemplate>
                     <MudTd Style="width:55%">
                         <div style="display: flex; flex-direction: column;">
-                            <!-- Header / main text -->
-                            <span style="font-weight: 600; font-size: 1rem;">@(@Purchase.Items.IndexOf(context) + 1).
-                                @context.Name | @context.PartNo</span>
-
-                            <!-- Subtext / smaller, muted -->
+                            <span style="font-weight: 600; font-size: 1rem;">
+                                @(Purchase.Items.IndexOf(context) + 1). @context.Name | @context.PartNo
+                            </span>
                             <span style="font-size: 0.85rem; color: gray;">
                                 @context.LocalName | Qty: @context.Quantity | Br: @context.BrandName
                             </span>
@@ -72,87 +72,82 @@
                     </MudTd>
 
                     <MudTd Style="width:15%">
-                        <MudNumericField @bind-Value="context.Quantity" Margin="Margin.Dense" Variant="Variant.Outlined"
-                            Dense="true" Min="1" />
+                        <MudNumericField @bind-Value="context.Quantity" Min="1"
+                                         Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
                     </MudTd>
 
                     <MudTd Style="width:15%">
-                        <MudNumericField @bind-Value="context.Price" HideSpinButtons=true Margin="Margin.Dense" Variant="Variant.Outlined"
-                            Dense="true" Min="0" />
+                        <MudAutocomplete T="UnitDto" Label="Unit" ToStringFunc="x=>x?.Name"
+                                         SearchFunc="SearchUnits" Variant="Variant.Outlined"
+                                         Margin="Margin.Dense" Dense="true" />
                     </MudTd>
 
                     <MudTd Style="width:15%">
+                        <MudNumericField @bind-Value="context.Price" Min="0"
+                                         HideSpinButtons="true" Disabled
+                                         Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
+                    </MudTd>
 
+                    <MudTd Style="width:15%">
                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
-                            <span>@(context.Quantity* context.Price)</span>
-                            <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Error" Size="Size.Small"
-                                OnClick="() => RemoveItem(context)" />
+                            <span>@(context.Quantity * context.Price)</span>
+                            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                           Color="Color.Error" Size="Size.Small"
+                                           OnClick="() => RemoveItem(context)" />
                         </div>
                     </MudTd>
                 </RowTemplate>
             </MudTable>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudNumericField Margin="Margin.Dense" HideSpinButtons=true Variant="Variant.Outlined"
-                Label="Advacnd Amount" Disabled=true @bind-Value="Purchase.AdvacedAmount" />
-
-            <MudNumericField Margin="Margin.Dense" Variant="Variant.Outlined" Label="Deliver Charge"
-                @bind-Value="Purchase.DeliveryCharge" Min="1" HideSpinButtons=true />
-
-            <MudNumericField Margin="Margin.Dense" Variant="Variant.Outlined" Label="Discount"
-                @bind-Value="Purchase.DiscountAmount" Min="1" HideSpinButtons=true />
-
-            <MudGrid>
-                <MudItem xs="12" sm="6" md="6">
-                    <MudNumericField Margin="Margin.Dense" Variant="Variant.Outlined" Label="Tax(%)"
-                        @bind-Value="Purchase.Tax" Min="1" HideSpinButtons=true />
-                </MudItem>
-                <MudItem xs="12" sm="6" md="6">
-                    <MudNumericField Margin="Margin.Dense" Variant="Variant.Outlined" Label="Vat(%)"
-                        @bind-Value="Purchase.Vat" Min="1" HideSpinButtons=true />
-                </MudItem>
-            </MudGrid>
-
-            @* <MudSelect T="string" Label="Payment Type" @bind-Value="Purchase.PaymentType" Variant="Variant.Outlined"
-                Margin="Margin.Dense">
-                <MudSelectItem Value="1">Cash</MudSelectItem>
-                <MudSelectItem Value="2">Bank</MudSelectItem>
-                <MudSelectItem Value="3">Bikash</MudSelectItem>
-                <MudSelectItem Value="4">Nagad</MudSelectItem>
-            </MudSelect> *@
-
-            <MudTextField T="string" Label="Ref Note" Lines="2" Variant="Variant.Outlined" Margin="Margin.Dense"
-                    @bind-Value="Purchase.RefNote" />
-
-            <MudNumericField Margin="Margin.Dense" HideSpinButtons=true Variant="Variant.Outlined" Label="Payment"
-                @bind-Value="Purchase.PaidAmount" Min="1" />
-
-        </MudItem>
-    </MudGrid>
-    <MudGrid>
-        <MudItem xs="12" sm="6" md="8">
-
-
+            </div>
         </MudItem>
     </MudGrid>
 
 
-    <div class="flex flex-row justify-end space-x-2">
-        <MudButton Color="Color.Primary" OnClick="Submit">Save As Draft</MudButton>
-        <MudButton Color="Color.Error" OnClick="Cancel">Cancel</MudButton>
-    </div>
-
-
+  
+   <MudStack Row Justify=Justify.FlexEnd Spacing="2">
+    <MudButton Variant="Variant.Filled" ButtonType="ButtonType.Submit" Color="Color.Primary" OnClick="Submit">
+        Save
+    </MudButton>
+    <MudButton Variant="Variant.Filled" ButtonType="ButtonType.Button" Color="Color.Primary" OnClick="Cancel">
+        Cancel
+    </MudButton>
+</MudStack>
 </MudForm>
+    </MudItem>
+    <MudItem md="4">
+        <MudItem xs="12" sm="12" md="12">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudForm>
+                    <MudDatePicker Label="Receive Date" Margin="Margin.Dense" Editable="true" DateFormat="MM/dd/yyyy"
+                        Variant="Variant.Outlined" Class="mb-3" />
+
+                    <MudTextField T="string" Label="Shipment Ref" Margin="Margin.Dense" Variant="Variant.Outlined"
+                        Class="mb-3" />
+
+                    <MudTextField T="string" Label="Courier Name" Margin="Margin.Dense" Variant="Variant.Outlined"
+                        Class="mb-3" />
+
+                    <MudTextField T="string" Label="Note" Margin="Margin.Dense" Variant="Variant.Outlined" Lines="2" />
+                </MudForm>
+            </MudPaper>
+        </MudItem>
+    </MudItem>
+
+
+</MudGrid>
+
+
+
 
 @code {
     [Parameter] public string Id { get; set; } = string.Empty;
     private Item _selectedItem;
-    private SupplierDto SelectedSupplier;
     private bool Success;
     private bool IsEditMode => !string.IsNullOrEmpty(Purchase.Id);
 
     private MudForm? form;
+
+    private GetPurchaseDto? PurchaseVm { get; set; } = null!;
 
     PurchaseFormModel Purchase = new PurchaseFormModel();
 
@@ -170,6 +165,12 @@
         }
     }
 
+    private async Task<IEnumerable<UnitDto>> SearchUnits(string value, CancellationToken cancellationToken)
+    {
+        var result = await UnitService.GetAsync(search: value ?? string.Empty);
+
+        return result.Data;
+    }
     private bool selectedOnTab;
 
     private double total => Purchase.Items.Sum(x => x.Quantity * x.Price);
@@ -178,24 +179,23 @@
     {
         if (!string.IsNullOrEmpty(Id))
         {
-            var purchase = await PurchaseService.GetByIdAsync(Id);
+            GetPurchaseDto? PurchaseVm = await PurchaseService.GetByIdAsync(Id);
 
-            if (purchase is not null)
+            if (PurchaseVm is not null)
             {
-                Purchase = new PurchaseFormModel()
+                @* Purchase = new PurchaseFormModel()
                 {
-                    Id = purchase.Id,
-                    PurchaseNo = purchase.PurchaseNo,
-                    PurchaseDate = purchase.PurchaseDate,
+                    Id = PurchaseVm.Id,
+                    PurchaseNo = PurchaseVm.PurchaseNo,
+                    PurchaseDate = PurchaseVm.PurchaseDate,
                     Status = PurchaseStatus.Draft,
-                    TotalAmount = purchase.TotalAmount,
-                    DeliveryCharge = purchase.DeliveryCharge,
-                    DueAmount = purchase.DueAmount,
-                    PaidAmount = purchase.PaidAmount,
-                    Tax = purchase.Tax,
-                    Vat = purchase.Vat,
-                    DiscountAmount = purchase.DiscountAmount,
-                    Items = purchase.Items.Select(x =>
+                    TotalAmount = PurchaseVm.SubTotal,
+                    DueAmount = PurchaseVm.Due,
+                    PaidAmount = PurchaseVm.Paid,
+                    Tax = PurchaseVm.Tax,
+                    Vat = PurchaseVm.Vat,
+                    DiscountAmount = PurchaseVm.DiscountAmount,
+                    Items = PurchaseVm.Items.Select(x =>
                     {
                         return new Item()
                         {
@@ -208,9 +208,8 @@
                             Price = x.UnitPrice
                         };
                     }).ToList()
-                };
+                }; *@
 
-                SelectedSupplier = await SupplierService.GetByIdAsync(purchase.Supplier.Id);
             }
         }
     }
@@ -224,46 +223,34 @@
         {
             if (IsEditMode)
             {
-                await PurchaseService.UpdateAsync(Purchase.Id, new CreatePurchaseDto(
+                @* await PurchaseService.UpdateAsync(Purchase.Id, new CreatePurchaseDto(
                 Purchase.PurchaseNo,
                 Purchase.PurchaseDate.Value,
                 SelectedSupplier.Id,
                 PurchaseStatus.Draft,
-                Purchase.DeliveryCharge,
                 Purchase.Vat,
                 Purchase.Tax,
                 Purchase.DiscountAmount,
                 "",
                 "",
                 Purchase.Items.Select(x => new CreatePurchaseItemDto(x.Id, "30a5fb2b-0907-4ace-9623-10c8fcbc8289",x.Quantity, x.Price))
-                .ToList(),
-                new CreatePurchasePaymentDto(
-                    PaymentMethodId: "fcf6a35c-4d88-4863-bc55-09bbeca9e59d",
-                    Purchase.PaidAmount,
-                    Purchase.RefNote)
-                ));
+                .ToList())); *@
             }
 
             else
             {
-                await PurchaseService.CreateAsync(new CreatePurchaseDto(
+                @* await PurchaseService.CreateAsync(new CreatePurchaseDto(
                 Purchase.PurchaseNo,
                 Purchase.PurchaseDate.Value,
                 SelectedSupplier.Id,
                 PurchaseStatus.Draft,
-                Purchase.DeliveryCharge,
                 Purchase.Vat,
                 Purchase.Tax,
                 Purchase.DiscountAmount,
                 "",
                 "",
                 Purchase.Items.Select(x => new CreatePurchaseItemDto(x.Id, "30a5fb2b-0907-4ace-9623-10c8fcbc8289", x.Quantity, x.Price))
-                .ToList(),
-                new CreatePurchasePaymentDto(
-                    "fcf6a35c-4d88-4863-bc55-09bbeca9e59d",
-                    Purchase.PaidAmount,
-                    Purchase.RefNote)
-                ));
+                .ToList())); *@
             }
 
             Navigation.NavigateTo("/purchases");
@@ -302,13 +289,6 @@
     private void RemoveItem(Item item)
     {
         Purchase.Items.Remove(item);
-    }
-
-    private async Task<IEnumerable<SupplierDto>> SearchSuppliers(string value, CancellationToken cancellationToken)
-    {
-        var result = await SupplierService.GetAsync(search: value ?? string.Empty);
-
-        return result.Data.Select(x => new SupplierDto(x.Id, x.Name, x.Phone, x.Email, x.Address));
     }
 
     private async Task<IEnumerable<Item>> SearchItems(string value, CancellationToken cancellationToken)
@@ -388,6 +368,6 @@
         public double Price { get; set; }
     }
 
-   
+
 
 }

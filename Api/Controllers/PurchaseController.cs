@@ -20,15 +20,15 @@ public class PurchaseController(
     {
         logger.LogInformation("Fetching purchases with query: {@Query}", productQuery);
 
-        var _purchases = dbContext.Purchases.AsQueryable();
+        var queryable = dbContext.Purchases.AsQueryable();
         if (!string.IsNullOrWhiteSpace(productQuery.Search))
         {
-            _purchases = _purchases.Where(p => p.PurchaseNumber.Contains(productQuery.Search));
+            queryable = queryable.Where(p => p.PurchaseNumber.Contains(productQuery.Search));
         }
 
-        var totalCount = _purchases.Count();
+        var totalCount = queryable.Count();
 
-        var purchases = await _purchases
+        var purchases = await queryable
             .OrderByDescending(p => p.PurchaseDate)
             .Skip((productQuery.Page - 1) * productQuery.PageSize)
             .Take(productQuery.PageSize)
@@ -37,8 +37,11 @@ public class PurchaseController(
                 p.PurchaseNumber,
                 p.Status.convertToString(),
                 p.PurchaseDate,
-                new EntityRef(p.Supplier.Id, p.Supplier.Name)
-            )).ToListAsync();
+                new EntityRef(p.Supplier.Id, p.Supplier.Name),
+                p.Items.Sum(x => x.UnitPrice *x.OrderedQuantity),
+                p.PaymentTransactions.Sum(x => x.AmountPaid),
+                p.Items.Sum(x => x.UnitPrice) - p.DiscountAmount - p.PaymentTransactions.Sum(x => x.AmountPaid)
+            )).ToListAsync(cancellationToken: cancellationToken);
 
         var result = new Paging<GetPurchaseResponse>
         {
@@ -61,7 +64,10 @@ public class PurchaseController(
                 x.PurchaseNumber,
                 x.Status.convertToString(),
                 x.PurchaseDate,
-                new EntityRef(x.Supplier.Id, x.Supplier.Name)
+                new EntityRef(x.Supplier.Id, x.Supplier.Name),
+                x.Items.Sum(x => x.UnitPrice * x.OrderedQuantity),
+                x.PaymentTransactions.Sum(x => x.AmountPaid),
+                x.Items.Sum(x => x.UnitPrice * x.OrderedQuantity) - x.DiscountAmount - x.PaymentTransactions.Sum(x => x.AmountPaid)
              ))
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
@@ -91,7 +97,6 @@ public class PurchaseController(
             PurchaseNumber = request.PurchaseNo,
             SupplierId = request.SupplierId,
             ShipTo = request.ShipTo,
-            DeliveryCharge = request.DeliveryCharge,
             Vat = request.Vat,
             Tax = request.Tax,
             DiscountAmount = request.DiscountAmount,
@@ -120,23 +125,9 @@ public class PurchaseController(
             await dbContext.PurchaseItems.AddAsync(purchaseItem, cancellationToken);
         }
 
-        if (request.Payment is not null)
-        {
-            var payment = await dbContext.PaymentTransaction.AddAsync(new PaymentTransaction()
-            {
-                Id = Guid.NewGuid().ToString(),
-                PurchaseId = purchase.Id,
-                PartyId = request.SupplierId,
-                PartyType = PartyType.Supplier,
-                AmountPaid = request.Payment.PaidAmount,
-                NoteRef = request.Payment.NoteRef,
-                PaymentMethodId = request.Payment.PaymentMethodId,
-            });
-        }
-
         await dbContext.SaveChangesAsync();
         logger.LogInformation("Purchase created with ID {PurchaseId}", purchase.Id);
-        return CreatedAtAction(nameof(GetById), new { purchase }, purchase.Id);
+        return Ok(request);
     }
 
     [HttpPut("{id}")]
@@ -165,7 +156,6 @@ public class PurchaseController(
         purchase.PurchaseDate = request.PurchaseDate;
         purchase.ShipTo = request.ShipTo;
         purchase.Status = request.Status;
-        purchase.DeliveryCharge = request.DeliveryCharge;
         purchase.Vat = request.Vat;
         purchase.Tax = request.Tax;
         purchase.DiscountAmount = request.DiscountAmount;
@@ -201,33 +191,6 @@ public class PurchaseController(
                 find.UnitPrice = item.UnitPrice;
             }
         }
-        if (request.Payment is not null)
-        {
-            var find = await dbContext.PaymentTransaction.FindAsync(purchase.Id);
-            if (find is null)
-            {
-                var paymentTransaction = new PaymentTransaction()
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    PurchaseId = purchase.Id,
-                    PartyId = request.SupplierId,
-                    PartyType = PartyType.Supplier,
-                    AmountPaid = request.Payment.PaidAmount,
-                    NoteRef = request.Payment.NoteRef,
-                    PaymentMethodId = request.Payment.PaymentMethodId,
-                };
-                await dbContext.PaymentTransaction.AddAsync(paymentTransaction);
-            }
-            else
-            {
-                find.PartyId = request.SupplierId;
-                find.PartyType = PartyType.Customer;
-                find.AmountPaid = request.Payment.PaidAmount;
-                find.PaymentMethodId = request.Payment.PaymentMethodId;
-                find.NoteRef = request.Payment.NoteRef;
-            }
-
-        }
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -258,14 +221,20 @@ public class PurchaseController(
         logger.LogInformation("Purchase with ID {PurchaseId} deleted successfully", id);
         return NoContent();
     }
+
 }
+
+
 
 public record GetPurchaseResponse(
     string Id,
     string PurchaseNo,
     string Status,
     DateTime PurchaseDate,
-    EntityRef Supplier
+    EntityRef Supplier,
+    double SubTotal,
+    double Paid,
+    double Due
     );
 
 public record GetPurchaseItem(
@@ -283,32 +252,18 @@ public record CreatePurchaseRequest(
     DateTime PurchaseDate,
     string SupplierId,
     PurchaseStatus Status,
-    double DeliveryCharge,
     float Vat,
     float Tax,
     double DiscountAmount,
     string ShipTo,
     string NoteRef,
-    CreatePurchasePaymentRequest Payment,
     List<CreatePurchaseItem> Items
     );
 
-public record CreatePurchasePaymentRequest(
-    string PaymentMethodId,
-    double PaidAmount,
-    string NoteRef
-);
+
 public record CreatePurchaseItem(
     string Id,
     double Quantity,
     string UnitId,
     double UnitPrice
     );
-
-public enum PaymentMethod
-{
-    Cash,
-    Bikash,
-    Nagad,
-    Bank
-}

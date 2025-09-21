@@ -69,21 +69,14 @@ public record CreatePurchaseDto(
     DateTime PurchaseDate,
     string SupplierId,
     PurchaseStatus Status,
-    double DeliveryCharge,
     double Vat,
     double Tax,
     double DiscountAmount,
     string ShipTo,
     string NoteRef,
-    List<CreatePurchaseItemDto> Items,
-    CreatePurchasePaymentDto Payment
+    List<CreatePurchaseItemDto> Items
     );
 
-public record CreatePurchasePaymentDto(
-    string PaymentMethodId,
-    double PaidAmount,
-    string NoteRef
-);
 public record CreatePurchaseItemDto(
     string Id,
     string UnitId,
@@ -120,14 +113,12 @@ public record GetPurchaseDto(
     string Status,
     DateTime PurchaseDate,
     EntityRef Supplier,
-    double SubTotal,
-    double TotalAmount,
-    double PaidAmount,
-    double DueAmount,
-    double DeliveryCharge,
     double Vat,
     double Tax,
     double DiscountAmount,
+    double SubTotal,
+    double Paid,
+    double Due,
     List<GetPurchaseItemDto> Items
     );
 

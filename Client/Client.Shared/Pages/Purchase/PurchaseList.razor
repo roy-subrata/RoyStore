@@ -19,13 +19,13 @@
 
     <!-- Actions -->
     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Start" Class="w-50" Justify="Justify.FlexEnd">
-        <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Print"
-            OnClick="Print">
-            Print
-        </MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
             OnClick="addNew">
             Add New
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Print"
+            OnClick="Print">
+            Print
         </MudButton>
     </MudStack>
 </MudStack>
@@ -65,17 +65,39 @@
         <MudTd DataLabel="Name">@context.Status</MudTd>
         <MudTd DataLabel="Name">@context.Suppiler.Name</MudTd>
         <MudTd DataLabel="Category">@context.Total</MudTd>
-        <MudTd DataLabel="Brand">@context.Payment</MudTd>
-        <MudTd DataLabel="Brand">@context.DueAmount</MudTd>
-        <MudTd>
-            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Payment" Color="Color.Primary"
-                OnClick="@(() => Navigation.NavigateTo("/purchase-payment"))" />
-            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.CallReceived" Color="Color.Primary"
-                OnClick="@(() => Navigation.NavigateTo("/purchase/itemreceive"))" />
-            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Edit" Color="Color.Primary"
-                OnClick="@(() => Editpurchase(@context.Id))" />
-            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" Color="Color.Warning"
-                OnClick="@(async () => await ConfirmAsync(context))" />
+        <MudTd DataLabel="Brand">@context.Paid</MudTd>
+        <MudTd DataLabel="Brand">@context.Due</MudTd>
+
+        <MudTd DataLabel="Actions">
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true">
+                <MudMenuItem>
+
+                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.ReadMore" Color="Color.Primary"
+                        OnClick="@(() => Navigation.NavigateTo($"/purchase/detail/{@context.Id}"))" />
+                    View
+                </MudMenuItem>
+                <MudMenuItem>
+                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.EditNote" Color="Color.Primary"
+                        OnClick="@(() => Navigation.NavigateTo($"/purchasepayment/{@context.Id}"))" />
+                    Edit
+                </MudMenuItem>
+                <MudMenuItem>
+                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Payments" Color="Color.Primary"
+                        OnClick="@(() => Navigation.NavigateTo($"/purchasepayment/{@context.Id}"))" />
+                    Payment
+                </MudMenuItem>
+                <MudMenuItem>
+                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.LocalShipping" Color="Color.Primary"
+                        OnClick="@(() => Navigation.NavigateTo($"/purchase/shipment/{@context.Id}"))" />
+                    Receive
+                </MudMenuItem>
+                <MudMenuItem>
+                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.KeyboardReturn"
+                        Color="Color.Primary"
+                        OnClick="@(() => Navigation.NavigateTo($"/purchasepayment/{@context.Id}"))" />
+                    Return
+                </MudMenuItem>
+            </MudMenu>
         </MudTd>
     </RowTemplate>
 
@@ -104,10 +126,15 @@
         return new TableData<PurchaseVM>
         {
             Items = result.Data.Select(x => new
-            PurchaseVM(x.Id, x.PurchaseNo,
+            PurchaseVM(
+            x.Id,
+            x.PurchaseNo,
             x.PurchaseDate.ToString(),
             x.Status,
-            x.TotalAmount, x.DueAmount, x.PaidAmount, x.Supplier)),
+            x.SubTotal,
+            x.Due,
+            x.Paid,
+            x.Supplier)),
             TotalItems = result.Total
         };
     }
@@ -156,8 +183,14 @@
     string PurchaseDate,
     string Status,
     double Total,
-    double DueAmount,
-    double Payment,
+    double Due,
+    double Paid,
     EntityRef Suppiler
     );
+
+    public class ReceiveShipment
+    {
+
+    }
+
 }

@@ -11,8 +11,8 @@ public class PaymentTransaction : BaseEntity
     public string? SaleReturnId { get; set; }
     public SaleReturn? SaleReturn { get; set; }
 
-    public string? PurchaseId { get; set; }
-    public Purchase? Purchase { get; set; }
+    public string PurchaseId { get; set; } = null!;
+    public Purchase Purchase { get; set; } = null!;
 
     public string? PurchaseReturnId { get; set; }
     public PurchaseReturn? PurchaseReturn { get; set; }

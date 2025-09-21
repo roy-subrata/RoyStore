@@ -19,7 +19,7 @@ public class PaymentMethodService(IHttpClientFactory httpClientFactory)
         return result ?? throw new InvalidOperationException("Failed to retrieve PaymentMethods.");
     }
 
-    public async Task<PaymentMethodDto> GetByIdAsync(int id)
+    public async Task<PaymentMethodDto> GetByIdAsync(string id)
     {
         var response = await _httpClient.GetAsync($"api/paymentmethod/{id}");
         response.EnsureSuccessStatusCode();

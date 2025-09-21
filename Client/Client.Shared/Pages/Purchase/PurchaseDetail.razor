@@ -1,0 +1,281 @@
+@page "/purchase/detail/{Id?}"
+@using Client.Shared.Pages.Shared
+@using Client.Shared.Services
+@inject IStringLocalizer<Shared> L
+@inject SupplierService SupplierService
+@inject PurchaseService PurchaseService
+@inject ProductService ProductService
+@inject UnitService UnitService
+@inject NavigationManager Navigation
+
+<MudGrid>
+    <MudItem xs="12" sm="6" md="6">
+        <MudPaper Class="pa-3" Elevation="1">
+            <MudText Typo="Typo.subtitle2">Purchase No:</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">@PurchaseVm?.PurchaseNo</MudText>
+
+            <MudText Typo="Typo.subtitle2">Purchase Date:</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">@PurchaseVm?.PurchaseDate</MudText>
+
+            <MudText Typo="Typo.subtitle2">Purchase Status:</MudText>
+            <MudText Typo="Typo.body2">@PurchaseVm?.Status</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="6">
+        <MudPaper Class="pa-3" Elevation="1">
+            <MudText Typo="Typo.subtitle2">Supplier Name:</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">@PurchaseVm?.Supplier?.Name</MudText>
+
+            <MudText Typo="Typo.subtitle2">Total Amount:</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">@PurchaseVm?.SubTotal</MudText>
+
+            <MudText Typo="Typo.subtitle2">Due Amount:</MudText>
+            <MudText Typo="Typo.body2">@PurchaseVm?.Due</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudTabs Class="mt-2"  Elevation="1"  Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6 mt-2">
+    <MudTabPanel Text="Payments">
+       
+    </MudTabPanel>
+    <MudTabPanel Text="Shipments">
+       @* <ReceivedShipment Id="Id"></ReceivedShipment> *@
+    </MudTabPanel>
+</MudTabs>
+
+
+
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    private Item _selectedItem;
+    private bool Success;
+    private bool IsEditMode => !string.IsNullOrEmpty(Purchase.Id);
+
+    private MudForm? form;
+
+    private GetPurchaseDto? PurchaseVm { get; set; } = null!;
+
+    PurchaseFormModel Purchase = new PurchaseFormModel();
+
+    private Item SelectedItem
+    {
+        get => _selectedItem;
+        set
+        {
+            if (_selectedItem != value)
+            {
+                _selectedItem = value;
+                if (_selectedItem != null)
+                    AddItem(_selectedItem); // add item on selection
+            }
+        }
+    }
+
+    private async Task<IEnumerable<UnitDto>> SearchUnits(string value, CancellationToken cancellationToken)
+    {
+        var result = await UnitService.GetAsync(search: value ?? string.Empty);
+
+        return result.Data;
+    }
+    private bool selectedOnTab;
+
+    private double total => Purchase.Items.Sum(x => x.Quantity * x.Price);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(Id))
+        {
+            GetPurchaseDto? PurchaseVm = await PurchaseService.GetByIdAsync(Id);
+
+            if (PurchaseVm is not null)
+            {
+                @* Purchase = new PurchaseFormModel()
+                {
+                    Id = PurchaseVm.Id,
+                    PurchaseNo = PurchaseVm.PurchaseNo,
+                    PurchaseDate = PurchaseVm.PurchaseDate,
+                    Status = PurchaseStatus.Draft,
+                    TotalAmount = PurchaseVm.SubTotal,
+                    DueAmount = PurchaseVm.Due,
+                    PaidAmount = PurchaseVm.Paid,
+                    Tax = PurchaseVm.Tax,
+                    Vat = PurchaseVm.Vat,
+                    DiscountAmount = PurchaseVm.DiscountAmount,
+                    Items = PurchaseVm.Items.Select(x =>
+                    {
+                        return new Item()
+                        {
+                            Id = x.Id,
+                            Name = x.LocalName,
+                            LocalName = x.LocalName,
+                            BrandName = x.LocalName,
+                            PartNo = x.partNo,
+                            Quantity = x.RemainingQuantity,
+                            Price = x.UnitPrice
+                        };
+                    }).ToList()
+                }; *@
+
+            }
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (form is null) return;
+        if (!form.IsValid) return;
+
+        try
+        {
+            if (IsEditMode)
+            {
+                @* await PurchaseService.UpdateAsync(Purchase.Id, new CreatePurchaseDto(
+                Purchase.PurchaseNo,
+                Purchase.PurchaseDate.Value,
+                SelectedSupplier.Id,
+                PurchaseStatus.Draft,
+                Purchase.Vat,
+                Purchase.Tax,
+                Purchase.DiscountAmount,
+                "",
+                "",
+                Purchase.Items.Select(x => new CreatePurchaseItemDto(x.Id, "30a5fb2b-0907-4ace-9623-10c8fcbc8289",x.Quantity, x.Price))
+                .ToList())); *@
+            }
+
+            else
+            {
+                @* await PurchaseService.CreateAsync(new CreatePurchaseDto(
+                Purchase.PurchaseNo,
+                Purchase.PurchaseDate.Value,
+                SelectedSupplier.Id,
+                PurchaseStatus.Draft,
+                Purchase.Vat,
+                Purchase.Tax,
+                Purchase.DiscountAmount,
+                "",
+                "",
+                Purchase.Items.Select(x => new CreatePurchaseItemDto(x.Id, "30a5fb2b-0907-4ace-9623-10c8fcbc8289", x.Quantity, x.Price))
+                .ToList())); *@
+            }
+
+            Navigation.NavigateTo("/purchases");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private void AddItem(Item item)
+    {
+        var exist = Purchase.Items.Find(x => x.Id == item.Id);
+        if (exist is null)
+        {
+            Purchase.Items.Add(new Item
+            {
+                Id = item.Id,
+                Name = item.Name,
+                LocalName = item.LocalName,
+                PartNo = item.PartNo,
+                BrandName = item.BrandName,
+                Quantity = 1,
+                Price = 0
+            });
+        }
+        else
+        {
+            exist.Quantity++;
+        }
+
+        _selectedItem = null;
+    }
+
+
+    private void RemoveItem(Item item)
+    {
+        Purchase.Items.Remove(item);
+    }
+
+    private async Task<IEnumerable<Item>> SearchItems(string value, CancellationToken cancellationToken)
+    {
+        var result = await ProductService.GetAsync(search: value ?? string.Empty);
+
+        return result.Data.Select(x => new Item()
+        {
+            Id = x.Id,
+            Name = x.LocalName,
+            PartNo = x.PartNo,
+            Price = 0,
+            BrandName = x.Brand.Name,
+            LocalName = x.LocalName
+        });
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/purchases");
+    }
+
+
+    public class PurchaseFormModel
+    {
+        public string Id { get; set; } = string.Empty;
+        private string _purchaseNo = $"P-{DateTime.Now:yyMMdd}-{Guid.NewGuid().ToString()[..3].ToUpper()}";
+
+        public string PurchaseNo
+        {
+            get => _purchaseNo;
+            set => _purchaseNo = value;
+        }
+
+        private DateTime? _purchaseDate = DateTime.Now;
+
+        public DateTime? PurchaseDate
+        {
+            get => _purchaseDate;
+            set => _purchaseDate = value;
+        }
+
+        public PurchaseStatus Status { get; set; }
+        public double PaidAmount { get; set; }
+
+        public double PaymentDue => (Subtotal + DeliveryCharge + Tax + Vat) - DiscountAmount;
+
+        public double Subtotal => Items.Sum(x => x.Quantity * x.Price);
+        public double TotalAmount { get; set; }
+        private double _dueAmount { get; set; }
+
+        public double DueAmount
+        {
+            get => _dueAmount;
+            set => _dueAmount = TotalAmount - PaidAmount;
+        }
+
+        public string PaymentType { get; set; }
+        public string RefNote { get; set; } = string.Empty;
+        public double Tax { get; set; }
+        public double Vat { get; set; }
+        public double DiscountAmount { get; set; }
+        public double DeliveryCharge { get; set; }
+        public double AdvacedAmount { get; set; }
+        public List<Item> Items { get; set; } = new List<Item>();
+    }
+
+
+    public class Item
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public string LocalName { get; set; }
+        public string PartNo { get; set; }
+        public string BrandName { get; set; }
+        public int Quantity { get; set; }
+        public double Price { get; set; }
+    }
+
+
+
+}
