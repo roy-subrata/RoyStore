@@ -1,4 +1,4 @@
-@page "/purchases"
+@page "/purchase"
 @inherits LayoutComponentBase
 
 @using Client.Shared.Pages.Shared
@@ -6,8 +6,6 @@
 @using MudBlazor
 @inject ISnackbar Snackbar
 @inject PurchaseService PurchaseService
-
-
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
 
@@ -20,7 +18,7 @@
     <!-- Actions -->
     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Start" Class="w-50" Justify="Justify.FlexEnd">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-            OnClick="addNew">
+            OnClick="AddNew">
             Add New
         </MudButton>
         <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Print"
@@ -70,35 +68,30 @@
 
         <MudTd DataLabel="Actions">
             <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true">
-                <MudMenuItem>
 
-                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.ReadMore" Color="Color.Primary"
-                        OnClick="@(() => Navigation.NavigateTo($"/purchase/detail/{@context.Id}"))" />
-                    View
+                <MudMenuItem OnClick="@(() => Navigation.NavigateTo($"/purchase/detail/{context.Id}"))">
+                    <MudIcon Icon="@Icons.Material.Outlined.ReadMore" Class="mr-2" /> View
                 </MudMenuItem>
-                <MudMenuItem>
-                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.EditNote" Color="Color.Primary"
-                        OnClick="@(() => Navigation.NavigateTo($"/purchasepayment/{@context.Id}"))" />
-                    Edit
+
+                <MudMenuItem OnClick="@(() => Navigation.NavigateTo($"/purchase/form/{context.Id}"))">
+                    <MudIcon Icon="@Icons.Material.Outlined.EditNote" Class="mr-2" /> Edit
                 </MudMenuItem>
-                <MudMenuItem>
-                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Payments" Color="Color.Primary"
-                        OnClick="@(() => Navigation.NavigateTo($"/purchasepayment/{@context.Id}"))" />
-                    Payment
+
+                <MudMenuItem OnClick="@(() => Navigation.NavigateTo($"/purchase/payment/{context.Id}"))">
+                    <MudIcon Icon="@Icons.Material.Outlined.Payments" Class="mr-2" /> Payment
                 </MudMenuItem>
-                <MudMenuItem>
-                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.LocalShipping" Color="Color.Primary"
-                        OnClick="@(() => Navigation.NavigateTo($"/purchase/shipment/{@context.Id}"))" />
-                    Receive
+
+                <MudMenuItem OnClick="@(() => Navigation.NavigateTo($"/purchase/receive/{context.Id}"))">
+                    <MudIcon Icon="@Icons.Material.Outlined.LocalShipping" Class="mr-2" /> Receive
                 </MudMenuItem>
-                <MudMenuItem>
-                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.KeyboardReturn"
-                        Color="Color.Primary"
-                        OnClick="@(() => Navigation.NavigateTo($"/purchasepayment/{@context.Id}"))" />
-                    Return
+
+                <MudMenuItem OnClick="@(() => Navigation.NavigateTo($"/purchase/return/{context.Id}"))">
+                    <MudIcon Icon="@Icons.Material.Outlined.KeyboardReturn" Class="mr-2" /> Return
                 </MudMenuItem>
+
             </MudMenu>
         </MudTd>
+
     </RowTemplate>
 
     <PagerContent>
@@ -118,10 +111,10 @@
     }
     public async Task<TableData<PurchaseVM>> LoadServerData(TableState state, CancellationToken cancellationToken)
     {
-        var page = state.Page + 1; // MudTable is 0-based
-        var pageSize = state.PageSize;
+        int page = state.Page + 1;
+        int pageSize = state.PageSize;
 
-        var result = await PurchaseService.GetAsync(_searchText, page, pageSize);
+        Pages<GetPurchaseDto>? result = await PurchaseService.GetAsync(_searchText, page, pageSize);
 
         return new TableData<PurchaseVM>
         {
@@ -141,14 +134,14 @@
 
     public void Print() => Snackbar.Add("Print feature not implemented yet.", Severity.Info);
 
-    public void addNew()
+    public void AddNew()
     {
-        Navigation.NavigateTo("/purchase-form");
+        Navigation.NavigateTo("/purchase/form");
     }
 
     public void Editpurchase(string purchaseId)
     {
-        Navigation.NavigateTo($"/purchase-form/{purchaseId}");
+        Navigation.NavigateTo($"/purchase/form/{purchaseId}");
 
     }
 

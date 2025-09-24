@@ -13,7 +13,7 @@ public class PurchasePaymentService(IHttpClientFactory httpClientFactory)
     )
     {
         var response = await _httpClient.GetAsync(
-            $"api/purchasepayment?purchaseId={purchaseId}&search={search}&page={page}&pageSize={pageSize}");
+            $"api/purchase/payment?purchaseId={purchaseId}&search={search}&page={page}&pageSize={pageSize}");
 
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<Pages<GetPurchasePaymentDto>>();
@@ -22,7 +22,7 @@ public class PurchasePaymentService(IHttpClientFactory httpClientFactory)
 
     public async Task<GetPurchasePaymentDto> GetByIdAsync(string id)
     {
-        var response = await _httpClient.GetAsync($"api/purchasepayment/{id}");
+        var response = await _httpClient.GetAsync($"api/purchase/payment/{id}");
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<GetPurchasePaymentDto>();
@@ -31,8 +31,8 @@ public class PurchasePaymentService(IHttpClientFactory httpClientFactory)
 
     public async Task<CreatePurchasePaymentDto> CreateAsync(CreatePurchasePaymentDto purchase)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/purchasepayment", purchase);
-        response.EnsureSuccessStatusCode();
+        var response = await _httpClient.PostAsJsonAsync("api/purchase/payment", purchase);
+        //response.EnsureSuccessStatusCode();
 
         var content = await response.Content.ReadAsStringAsync();
         return purchase;
@@ -40,16 +40,16 @@ public class PurchasePaymentService(IHttpClientFactory httpClientFactory)
 
     public async Task<CreatePurchasePaymentDto> UpdateAsync(string id, CreatePurchasePaymentDto purchase)
     {
-        var response = await _httpClient.PutAsJsonAsync($"api/purchasepayment/{id}", purchase);
-        response.EnsureSuccessStatusCode();
+        var response = await _httpClient.PutAsJsonAsync($"api/purchase/payment/{id}", purchase);
+       // response.EnsureSuccessStatusCode();
 
-        var content = await response.Content.ReadAsStringAsync();
+       // var content = await response.Content.ReadAsStringAsync();
         return purchase;
     }
 
     public async Task DeleteAsync(string id)
     {
-        await _httpClient.DeleteAsync($"api/purchasepayment/{id}");
+        await _httpClient.DeleteAsync($"api/purchase/payment/{id}");
 
     }
 }

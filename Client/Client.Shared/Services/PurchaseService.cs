@@ -18,7 +18,7 @@ public class PurchaseService
         int pageSize = 10
     )
     {
-        var response = await _httpClient.GetAsync($"api/purchases?search={search}&page={page}&pageSize={pageSize}");
+        var response = await _httpClient.GetAsync($"api/purchase?search={search}&page={page}&pageSize={pageSize}");
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<Pages<GetPurchaseDto>>();
         return result ?? throw new InvalidOperationException("Failed to retrieve purchases.");
@@ -26,7 +26,7 @@ public class PurchaseService
 
     public async Task<GetPurchaseDto> GetByIdAsync(string id)
     {
-        var response = await _httpClient.GetAsync($"api/purchases/{id}");
+        var response = await _httpClient.GetAsync($"api/purchase/{id}");
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<GetPurchaseDto>();
@@ -35,7 +35,7 @@ public class PurchaseService
 
     public async Task<CreatePurchaseDto> CreateAsync(CreatePurchaseDto purchase)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/purchases", purchase);
+        var response = await _httpClient.PostAsJsonAsync("api/purchase", purchase);
         response.EnsureSuccessStatusCode();
 
         var content = await response.Content.ReadAsStringAsync();
@@ -47,7 +47,7 @@ public class PurchaseService
 
     public async Task<CreatePurchaseDto> UpdateAsync(string id, CreatePurchaseDto purchase)
     {
-        var response = await _httpClient.PutAsJsonAsync($"api/purchases/{id}", purchase);
+        var response = await _httpClient.PutAsJsonAsync($"api/purchase/{id}", purchase);
         response.EnsureSuccessStatusCode();
 
         var content = await response.Content.ReadAsStringAsync();
@@ -59,7 +59,7 @@ public class PurchaseService
 
     public async Task DeleteAsync(string id)
     {
-        await _httpClient.DeleteAsync($"api/purchases/{id}");
+        await _httpClient.DeleteAsync($"api/purchase/{id}");
 
     }
 }
@@ -127,8 +127,8 @@ public record GetPurchaseItemDto(
     string ProductName,
     string LocalName,
     string partNo,
-    int Quantity,
-    int RemainingQuantity,
+    double Quantity,
+    double OrderedQuantity,
     double UnitPrice
     );
 

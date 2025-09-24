@@ -1,4 +1,5 @@
 
+using System.Linq;
 using Api.Entities;
 using Api.Mapping;
 using Api.Models;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Api.Controllers;
 
 [ApiController]
-[Route("api/purchases")]
+[Route("api/purchase")]
 public class PurchaseController(
     ILogger<PurchaseReturnController> logger,
     StoreDbContext dbContext
@@ -27,21 +28,55 @@ public class PurchaseController(
         }
 
         var totalCount = queryable.Count();
-
-        var purchases = await queryable
+        var purchasesRaw = await queryable
             .OrderByDescending(p => p.PurchaseDate)
             .Skip((productQuery.Page - 1) * productQuery.PageSize)
             .Take(productQuery.PageSize)
-            .Select(p => new GetPurchaseResponse(
+            .Select(p => new
+            {
                 p.Id,
                 p.PurchaseNumber,
-                p.Status.convertToString(),
+                p.Status,  // keep as enum, convert later
                 p.PurchaseDate,
-                new EntityRef(p.Supplier.Id, p.Supplier.Name),
-                p.Items.Sum(x => x.UnitPrice *x.OrderedQuantity),
-                p.PaymentTransactions.Sum(x => x.AmountPaid),
-                p.Items.Sum(x => x.UnitPrice) - p.DiscountAmount - p.PaymentTransactions.Sum(x => x.AmountPaid)
-            )).ToListAsync(cancellationToken: cancellationToken);
+                Supplier = new { p.Supplier.Id, p.Supplier.Name },
+                Items = p.Items.Select(i => new
+                {
+                    i.Id,
+                    i.Product.Name,
+                    i.Product.LocalName,
+                    i.Product.PartNo,
+                    i.OrderedQuantity,
+                    i.UnitPrice
+                }),
+                p.Tax,
+                p.Vat,
+                p.DiscountAmount,
+                Total = p.Items.Sum(x => x.UnitPrice * x.OrderedQuantity),
+                Paid = p.PaymentTransactions.Sum(x => x.AmountPaid)
+            })
+            .ToListAsync(cancellationToken);
+
+        var purchases = purchasesRaw.Select(p => new GetPurchaseResponse(
+            p.Id,
+            p.PurchaseNumber,
+            p.Status.convertToString(),
+            p.PurchaseDate,
+            new EntityRef(p.Supplier.Id, p.Supplier.Name),
+            p.Items.Select(i => new GetPurchaseItem(
+                i.Id,
+                i.Name,
+                i.LocalName,
+                i.PartNo,
+                i.OrderedQuantity,
+                i.UnitPrice
+                )).ToList(),
+    p.Tax,
+    p.Vat,
+    p.DiscountAmount,
+    p.Total,
+    p.Paid,
+    p.Total - p.DiscountAmount - p.Paid
+)).ToList();
 
         var result = new Paging<GetPurchaseResponse>
         {
@@ -58,26 +93,63 @@ public class PurchaseController(
     {
         logger.LogInformation("Fetching purchase with ID {PurchaseId}", id);
 
-        var response = await dbContext.Purchases
-            .Select(x => new GetPurchaseResponse(
-                x.Id,
-                x.PurchaseNumber,
-                x.Status.convertToString(),
-                x.PurchaseDate,
-                new EntityRef(x.Supplier.Id, x.Supplier.Name),
-                x.Items.Sum(x => x.UnitPrice * x.OrderedQuantity),
-                x.PaymentTransactions.Sum(x => x.AmountPaid),
-                x.Items.Sum(x => x.UnitPrice * x.OrderedQuantity) - x.DiscountAmount - x.PaymentTransactions.Sum(x => x.AmountPaid)
-             ))
-            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+        var x = await dbContext.Purchases
+            .Where(p => p.Id == id)
+            .Select(p => new
+            {
+                p.Id,
+                p.PurchaseNumber,
+                p.Status,
+                p.PurchaseDate,
+                Supplier = new { p.Supplier.Id, p.Supplier.Name },
+                Items = p.Items.Select(i => new
+                {
+                    i.Id,
+                    i.Product.Name,
+                    i.Product.LocalName,
+                    i.Product.PartNo,
+                    i.OrderedQuantity,
+                    i.UnitPrice
+                }),
+                p.Tax,
+                p.Vat,
+                p.DiscountAmount,
+                Total = p.Items.Sum(i => i.UnitPrice * i.OrderedQuantity),
+                Paid = p.PaymentTransactions.Sum(pt => pt.AmountPaid)
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
-        if (response == null)
+        if (x == null)
         {
             logger.LogWarning("Purchase with ID {PurchaseId} not found", id);
             return NotFound();
         }
+
+        var response = new GetPurchaseResponse(
+            x.Id,
+            x.PurchaseNumber,
+            x.Status.convertToString(),
+            x.PurchaseDate,
+            new EntityRef(x.Supplier.Id, x.Supplier.Name),
+            x.Items.Select(i => new GetPurchaseItem(
+                i.Id,
+                i.Name,
+                i.LocalName,
+                i.PartNo,
+                i.OrderedQuantity,
+                i.UnitPrice
+            )).ToList(),
+            x.Tax,
+            x.Vat,
+            x.DiscountAmount,
+            x.Total,
+            x.Paid,
+            x.Total - x.DiscountAmount - x.Paid
+        );
+
         return Ok(response);
     }
+
 
     [HttpPost]
     public async Task<IActionResult> CreatePurchase([FromBody] CreatePurchaseRequest request, CancellationToken cancellationToken)
@@ -222,6 +294,137 @@ public class PurchaseController(
         return NoContent();
     }
 
+    [HttpGet("payment")]
+    public async Task<IActionResult> GetPayment([FromQuery] PaymentQuery query)
+    {
+        logger.LogInformation("Fetching payments for PurchaseId: {PurchaseId}",
+            query.PurchaseId);
+
+        var queryable = dbContext.PaymentTransaction
+            .Include(x => x.Purchase)
+            .Include(x => x.PaymentMethod)
+            .Where(x => x.PartyType == PartyType.Supplier && x.PurchaseId == query.PurchaseId)
+            .AsNoTracking();
+
+        var total = await queryable.CountAsync();
+        var payments = await queryable
+            .Select(x => new GetPurchasePaymentResponse(
+                x.Id,
+                x.Purchase.Id,
+                x.PaymentDate,
+                x.PartyId,
+                x.PaymentMethod.Id,
+                x.AmountPaid,
+                x.NoteRef
+            ))
+            .ToListAsync();
+
+        logger.LogInformation("Found {Count} payment(s)", payments.Count);
+        var response = new Paging<GetPurchasePaymentResponse>()
+        {
+            Data = payments,
+            Page = query.Page,
+            PageSize = query.PageSize,
+            Total = total
+        };
+
+        return Ok(response);
+    }
+
+
+    [HttpPost("payment")]
+    public async Task<IActionResult> CreatePurchasePayment([FromBody] CreatePurchasePaymentRequest request)
+    {
+        logger.LogInformation("Adding new payment for PurchaseId: {PurchaseId}, Amount: {Amount}",
+            request.PurchaseId, request.PaymentAmount);
+
+        if (request.PaymentAmount <= 0)
+            return BadRequest("Payment amount must be greater than zero.");
+
+        var purchase = await dbContext.Purchases.FindAsync(request.PurchaseId);
+        if (purchase is null)
+        {
+            logger.LogWarning("Purchase with id {PurchaseId} not found", request.PurchaseId);
+            return NotFound($"Purchase with id {request.PurchaseId} not found");
+        }
+
+        var paymentTransaction = new PaymentTransaction
+        {
+            Id = Guid.NewGuid().ToString(),
+            AmountPaid = request.PaymentAmount,
+            PurchaseId = request.PurchaseId,
+            PaymentMethodId = request.PaymentMethodId,
+            NoteRef = request.NoteRef,
+            PaymentDate = request.PaymentDate,
+            PartyType = PartyType.Supplier, // or Customer depending on your domain
+            PartyId = request.SupplierId
+        };
+
+
+
+        dbContext.PaymentTransaction.Add(paymentTransaction);
+        await dbContext.SaveChangesAsync();
+
+        logger.LogInformation("Payment transaction {PaymentId} created successfully", paymentTransaction.Id);
+
+        return CreatedAtAction(nameof(CreatePurchasePayment),
+            new { id = paymentTransaction.Id },
+            paymentTransaction);
+    }
+
+
+
+    [HttpPut("payment/{id}")]
+    public async Task<IActionResult> UpdatePurchasePayment(string id, [FromBody] CreatePurchasePaymentRequest request)
+    {
+        logger.LogInformation("Updating payment {PaymentId}", id);
+
+        var paymentTransaction = await dbContext.PaymentTransaction.FindAsync(id);
+        if (paymentTransaction is null)
+        {
+            logger.LogWarning("Payment transaction with id {PaymentId} not found", id);
+            return NotFound($"Payment transaction with id {id} not found");
+        }
+
+        var purchase = await dbContext.Purchases.FindAsync(request.PurchaseId);
+        if (purchase is null)
+        {
+            logger.LogWarning("Purchase with id {PurchaseId} not found", request.PurchaseId);
+            return BadRequest($"Purchase with id {request.PurchaseId} not found");
+        }
+
+        paymentTransaction.AmountPaid = request.PaymentAmount;
+        paymentTransaction.PaymentMethodId = request.PaymentMethodId;
+        paymentTransaction.NoteRef = request.NoteRef;
+        paymentTransaction.PaymentDate = request.PaymentDate;
+        paymentTransaction.PartyId = request.SupplierId;
+
+        await dbContext.SaveChangesAsync();
+
+        logger.LogInformation("Payment transaction {PaymentId} updated successfully", id);
+
+        return Ok(request);
+    }
+
+    [HttpDelete("payment/{id}")]
+    public async Task<IActionResult> DeletePurchasPayment(string id)
+    {
+        logger.LogInformation("Deleting payment transaction {PaymentId}", id);
+
+        var paymentTransaction = await dbContext.PaymentTransaction.FindAsync(id);
+        if (paymentTransaction is null)
+        {
+            logger.LogWarning("Payment transaction with id {PaymentId} not found", id);
+            return NotFound($"Payment transaction with id {id} not found");
+        }
+
+        dbContext.PaymentTransaction.Remove(paymentTransaction);
+        await dbContext.SaveChangesAsync();
+
+        logger.LogInformation("Payment transaction {PaymentId} deleted successfully", id);
+
+        return NoContent();
+    }
 }
 
 
@@ -232,6 +435,10 @@ public record GetPurchaseResponse(
     string Status,
     DateTime PurchaseDate,
     EntityRef Supplier,
+    List<GetPurchaseItem> Items,
+    double Tax,
+    double Vat,
+    double DiscountAmount,
     double SubTotal,
     double Paid,
     double Due
@@ -242,8 +449,7 @@ public record GetPurchaseItem(
     string ProductName,
     string LocalName,
     string partNo,
-    int Quantity,
-    int RemainingQuantity,
+    double OrderedQuantity,
     double UnitPrice
     );
 
@@ -267,3 +473,32 @@ public record CreatePurchaseItem(
     string UnitId,
     double UnitPrice
     );
+
+public sealed class PaymentQuery : Query
+{
+    public string PurchaseId { get; set; } = string.Empty;
+    public string? PaymentDate { get; set; } = string.Empty;
+}
+
+
+
+public sealed record CreatePurchasePaymentRequest(
+    string PurchaseId,
+    string SupplierId,
+    string PaymentMethodId,
+    DateTime PaymentDate,
+    double PaymentAmount,
+    string NoteRef
+);
+
+
+
+public sealed record GetPurchasePaymentResponse(
+    string Id,
+    string PurchaseId,
+    DateTime PaymentDate,
+    string SupplierId,
+    string PaymentMethodId,
+    double PaymentAmount,
+    string? NoteRef
+);

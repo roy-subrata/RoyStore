@@ -1,4 +1,4 @@
-@page "/purchasepayment/{Id?}"
+@page "/purchase/payment/{Id?}"
 @inherits LayoutComponentBase
 @using Client.Shared.Pages.Shared
 @using Client.Shared.Services
@@ -16,22 +16,16 @@
             <MudGrid>
             <MudItem xs="12" sm="6" md="6">
             <MudPaper Class="pa-3" Elevation="1">
-        <MudText Typo="Typo.subtitle2">Purchase No:</MudText>
-        <MudText Typo="Typo.body2" Class="mb-2">@Purchase?.PurchaseNo</MudText>
-        <MudText Typo="Typo.subtitle2">Purchase Date:</MudText>
-        <MudText Typo="Typo.body2" Class="mb-2">@Purchase?.PurchaseDate</MudText>
-        <MudText Typo="Typo.subtitle2">Purchase Status:</MudText>
-        <MudText Typo="Typo.body2" Class="mb-2">@Purchase?.Status</MudText>
+        <MudText Typo="Typo.subtitle2">Purchase No: @Purchase?.PurchaseNo</MudText>
+        <MudText Typo="Typo.subtitle2">Purchase Date: @Purchase?.PurchaseDate</MudText>
+        <MudText Typo="Typo.subtitle2">Purchase Status:@Purchase?.Status</MudText>
            </MudPaper>
     </MudItem>
              <MudItem xs="12" sm="6" md="6">
               <MudPaper Class="pa-3" Elevation="1">
-        <MudText Typo="Typo.subtitle2">Supplier Name:</MudText>
-        <MudText Typo="Typo.body2"  Class="mb-2">@Purchase?.Supplier?.Name</MudText>
-        <MudText Typo="Typo.subtitle2">Total Amount:</MudText>
-        <MudText Typo="Typo.body2" Class="mb-2">@(Purchase?.SubTotal)</MudText>
-        <MudText Typo="Typo.subtitle2">Due Amount:</MudText>
-        <MudText Typo="Typo.body2" Class="mb-2">@Purchase?.Due</MudText>
+        <MudText Typo="Typo.subtitle2">Supplier Name:@Purchase?.Supplier?.Name</MudText>
+        <MudText Typo="Typo.subtitle2">Total Amount:@(Purchase?.SubTotal)</MudText>
+        <MudText Typo="Typo.subtitle2">Due Amount:@Purchase?.Due</MudText>
                 </MudPaper>
     </MudItem>    
         </MudGrid>
@@ -120,21 +114,22 @@
             Variant="Variant.Outlined">
         </MudTextField>
         </MudItem>
+        <MudItem Class="mt-5">
+       
+        </MudItem>
             </MudGrid>
         </MudForm>
             </MudPaper>
 
-        <div Class="pa-3 mt-4 d-flex justify-end" Elevation="1" Style="position:sticky; bottom:0; background:white; z-index:10;">
-         <MudButton Variant="Variant.Filled" ButtonType="ButtonType.Submit" Color="Color.Primary"  Disabled="@(!success)"
-            OnClick="Submit">
-            Payment
-        </MudButton>
-         <MudButton Variant="Variant.Filled" ButtonType="ButtonType.Button" Color="Color.Primary" 
-            OnClick="Clear">
-            Clear
-        </MudButton>
-        </div>
-
+         <MudStack Row Justify=Justify.FlexEnd Spacing="2"  class="mt-5">
+    <MudButton Variant="Variant.Filled" ButtonType="ButtonType.Submit" Color="Color.Primary" OnClick="Submit">
+        Payment
+    </MudButton>
+    <MudButton Variant="Variant.Filled" ButtonType="ButtonType.Button" Color="Color.Primary" OnClick="Clear">
+        Cancel
+    </MudButton>
+    
+</MudStack>
     </MudItem>
 </MudGrid>
 
@@ -161,13 +156,13 @@
     }
     private async Task<TableData<PurchasePaymentVm>> LoadServerData(TableState state, CancellationToken cancellationToken)
     {
-        var page = state.Page + 1;
-        var pageSize = state.PageSize;
+        int page = state.Page + 1;
+        int pageSize = state.PageSize;
 
-        var result = await PurchasePaymentService.GetAsync(_searchText, Id, page, pageSize);
+        Pages<GetPurchasePaymentDto>? result = await PurchasePaymentService.GetAsync(_searchText, Id, page, pageSize);
 
 
-        var items = (result?.Data ?? []).Select(c => new PurchasePaymentVm
+        List<PurchasePaymentVm>? items = (result?.Data ?? []).Select(c => new PurchasePaymentVm
         {
             Id = c.Id,
             PaymentAmount = c.PaymentAmount,
@@ -210,7 +205,7 @@
             FullWidth = true
         });
 
-        var result = await dialog.Result;
+        DialogResult? result = await dialog.Result;
         if (result is { Canceled: false })
         {
             await PurchasePaymentService.DeleteAsync(vm.Id);
@@ -233,7 +228,7 @@
             CreatePurchasePaymentDto? purchasePayment=new CreatePurchasePaymentDto(
                 Purchase.Id,
                 Purchase.Supplier.Id,
-                Model.PaymentMethodId,
+                _selectedMethod.Id,
                 Model.PaymentDate.Value,
                 Model.PaymentAmount,
                 Model.NoteRef
