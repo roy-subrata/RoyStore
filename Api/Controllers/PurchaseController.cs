@@ -1,5 +1,4 @@
 
-using System.Linq;
 using Api.Entities;
 using Api.Mapping;
 using Api.Models;
@@ -51,7 +50,7 @@ public class PurchaseController(
                 p.Tax,
                 p.Vat,
                 p.DiscountAmount,
-                Total = p.Items.Sum(x => x.UnitPrice * x.OrderedQuantity),
+                SubTotal = p.Items.Sum(x => x.UnitPrice * x.OrderedQuantity),
                 Paid = p.PaymentTransactions.Sum(x => x.AmountPaid)
             })
             .ToListAsync(cancellationToken);
@@ -69,14 +68,14 @@ public class PurchaseController(
                 i.PartNo,
                 i.OrderedQuantity,
                 i.UnitPrice
-                )).ToList(),
-    p.Tax,
-    p.Vat,
-    p.DiscountAmount,
-    p.Total,
-    p.Paid,
-    p.Total - p.DiscountAmount - p.Paid
-)).ToList();
+            )).ToList(),
+            p.Tax,
+            p.Vat,
+            p.DiscountAmount,
+            p.SubTotal,
+            p.Paid,
+            p.SubTotal + p.Tax + p.Vat - p.DiscountAmount - p.Paid
+        )).ToList();
 
         var result = new Paging<GetPurchaseResponse>
         {
@@ -168,7 +167,6 @@ public class PurchaseController(
             Id = Guid.NewGuid().ToString(),
             PurchaseNumber = request.PurchaseNo,
             SupplierId = request.SupplierId,
-            ShipTo = request.ShipTo,
             Vat = request.Vat,
             Tax = request.Tax,
             DiscountAmount = request.DiscountAmount,
@@ -201,15 +199,14 @@ public class PurchaseController(
         logger.LogInformation("Purchase created with ID {PurchaseId}", purchase.Id);
         return Ok(request);
     }
-
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdatePurchase(string id, [FromBody] CreatePurchaseRequest request, CancellationToken cancellationToken)
     {
         logger.LogInformation("Updating purchase with ID {PurchaseId} and request: {@Request}", id, request);
 
-        var purchase = dbContext.Purchases
+        var purchase = await dbContext.Purchases
             .Include(p => p.Items)
-            .FirstOrDefault(p => p.Id == id);
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
         if (purchase == null)
         {
@@ -217,7 +214,7 @@ public class PurchaseController(
             return NotFound();
         }
 
-        var supplier = dbContext.Suppliers.Find(request.SupplierId);
+        var supplier = await dbContext.Suppliers.FindAsync(request.SupplierId);
         if (supplier == null)
         {
             logger.LogWarning("Supplier with ID {SupplierId} not found", request.SupplierId);
@@ -226,24 +223,33 @@ public class PurchaseController(
 
         purchase.SupplierId = request.SupplierId;
         purchase.PurchaseDate = request.PurchaseDate;
-        purchase.ShipTo = request.ShipTo;
         purchase.Status = request.Status;
         purchase.Vat = request.Vat;
         purchase.Tax = request.Tax;
         purchase.DiscountAmount = request.DiscountAmount;
 
-        dbContext.PurchaseItems.RemoveRange(purchase.Items);
+        // Upsert items
+        var existingItems = purchase.Items.ToDictionary(i => i.Id, i => i);
 
+        // Update or add items
         foreach (var item in request.Items)
         {
-            var unit = dbContext.Units.Find(item.UnitId);
-            if (unit is null)
-                return BadRequest($"Purchase Item Unit with ID {item.UnitId} not found.");
-
-            var find = dbContext.PurchaseItems.Find(item.Id);
-            if (find is null)
+            if (existingItems.TryGetValue(item.Id, out var existingItem))
             {
-                var purchaseItem = new PurchaseItem
+                // Update existing item
+                existingItem.UnitId = item.UnitId;
+                existingItem.ProductId = item.Id;
+                existingItem.OrderedQuantity = item.Quantity;
+                existingItem.UnitPrice = item.UnitPrice;
+            }
+            else
+            {
+                // Add new item
+                var unit = await dbContext.Units.FindAsync(item.UnitId, cancellationToken);
+                if (unit is null)
+                    return BadRequest($"Purchase Item Unit with ID {item.UnitId} not found.");
+
+                var newItem = new PurchaseItem
                 {
                     Id = Guid.NewGuid().ToString(),
                     PurchaseId = purchase.Id,
@@ -252,16 +258,16 @@ public class PurchaseController(
                     OrderedQuantity = item.Quantity,
                     UnitPrice = item.UnitPrice
                 };
-                dbContext.PurchaseItems.Add(purchaseItem);
+                await dbContext.PurchaseItems.AddAsync(newItem, cancellationToken);
             }
-            else
-            {
-                find.PurchaseId = purchase.Id;
-                find.UnitId = item.UnitId;
-                find.ProductId = item.Id;
-                find.OrderedQuantity = item.Quantity;
-                find.UnitPrice = item.UnitPrice;
-            }
+        }
+
+        // Remove items not in request
+        var requestItemIds = request.Items.Select(i => i.Id).ToHashSet();
+        var itemsToRemove = purchase.Items.Where(i => !requestItemIds.Contains(i.Id)).ToList();
+        if (itemsToRemove.Any())
+        {
+            dbContext.PurchaseItems.RemoveRange(itemsToRemove);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -461,7 +467,6 @@ public record CreatePurchaseRequest(
     float Vat,
     float Tax,
     double DiscountAmount,
-    string ShipTo,
     string NoteRef,
     List<CreatePurchaseItem> Items
     );

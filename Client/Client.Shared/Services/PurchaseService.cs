@@ -72,7 +72,6 @@ public record CreatePurchaseDto(
     double Vat,
     double Tax,
     double DiscountAmount,
-    string ShipTo,
     string NoteRef,
     List<CreatePurchaseItemDto> Items
     );

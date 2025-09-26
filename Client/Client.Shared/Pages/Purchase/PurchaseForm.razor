@@ -215,14 +215,13 @@
             {
                 await PurchaseService.UpdateAsync(Purchase.Id, new CreatePurchaseDto(
                 Purchase.PurchaseNo,
-                Purchase.PurchaseDate.Value,
+                Purchase.PurchaseDate ?? DateTime.Now,
                 SelectedSupplier.Id,
                 PurchaseStatus.Draft,
                 Purchase.Vat,
                 Purchase.Tax,
                 Purchase.DiscountAmount,
-                "",
-                 "",
+                Purchase.RefNote,
                 Purchase.Items.Select(x => new CreatePurchaseItemDto(x.Id, x.Unit.Id,x.Quantity, x.Price))
                 .ToList()));
             }
@@ -231,20 +230,19 @@
             {
                 await PurchaseService.CreateAsync(new CreatePurchaseDto(
                 Purchase.PurchaseNo,
-                Purchase.PurchaseDate.Value,
+                Purchase.PurchaseDate ?? DateTime.Now,
                 SelectedSupplier.Id,
                 PurchaseStatus.Draft,
                 Purchase.Vat,
                 Purchase.Tax,
                 Purchase.DiscountAmount,
-                "",
-                "",
+                Purchase.RefNote,
                 Purchase.Items.Select(x => new CreatePurchaseItemDto(x.Id, x.Unit.Id, x.Quantity, x.Price))
                 .ToList()));
 
             }
 
-            Navigation.NavigateTo("/purchases");
+            Navigation.NavigateTo("/purchase");
         }
         catch (Exception ex)
         {
@@ -317,7 +315,7 @@
 
     private void Cancel()
     {
-        Navigation.NavigateTo("/purchases");
+        Navigation.NavigateTo("/purchase");
     }
 
     public class PurchaseFormModel
@@ -366,13 +364,13 @@
 
     public class Item
     {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string LocalName { get; set; }
-        public string PartNo { get; set; }
-        public string BrandName { get; set; }
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; }= string.Empty;
+        public string LocalName { get; set; }= string.Empty;
+        public string PartNo { get; set; }= string.Empty;
+        public string BrandName { get; set; }= string.Empty;
 
-        public UnitDto Unit{ get;set;}
+        public UnitDto Unit{ get;set;}=null!;
         public double Quantity { get; set; }
         public double Price { get; set; }
     }
