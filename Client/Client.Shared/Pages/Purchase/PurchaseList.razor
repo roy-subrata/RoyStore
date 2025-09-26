@@ -76,7 +76,9 @@
                 <MudMenuItem OnClick="@(() => Navigation.NavigateTo($"/purchase/form/{context.Id}"))">
                     <MudIcon Icon="@Icons.Material.Outlined.EditNote" Class="mr-2" /> Edit
                 </MudMenuItem>
-
+                <MudMenuItem OnClick="@(() => ConfirmAsync(context))">
+                    <MudIcon Color="Color.Warning" Icon="@Icons.Material.Outlined.KeyboardReturn" Class="mr-2" /> Delete
+                </MudMenuItem>
                 <MudMenuItem OnClick="@(() => Navigation.NavigateTo($"/purchase/payment/{context.Id}"))">
                     <MudIcon Icon="@Icons.Material.Outlined.Payments" Class="mr-2" /> Payment
                 </MudMenuItem>
